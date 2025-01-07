@@ -1,14 +1,12 @@
-import './MacSelect.css';
-
+import type {SideObject} from '@floating-ui/react';
 import {
-  autoUpdate,
-  flip,
   FloatingFocusManager,
   FloatingOverlay,
+  autoUpdate,
+  flip,
   inner,
   offset,
   shift,
-  SideObject,
   size,
   useClick,
   useDismiss,
@@ -19,10 +17,13 @@ import {
   useRole,
   useTypeahead,
 } from '@floating-ui/react';
+import {CheckIcon, ChevronDownIcon, ChevronUpIcon} from '@radix-ui/react-icons';
+import c from 'clsx';
 import {useLayoutEffect, useRef, useState} from 'react';
 import {flushSync} from 'react-dom';
 
 import {FloatingPortal} from '../../../src';
+import {Button} from '../lib/Button';
 
 const fruits = [
   '🍒 Cherry',
@@ -55,7 +56,7 @@ const SCROLL_ARROW_PADDING = 10;
 
 const shouldShowArrow = (
   scrollRef: React.MutableRefObject<HTMLDivElement | null>,
-  dir: 'down' | 'up'
+  dir: 'down' | 'up',
 ) => {
   if (scrollRef.current) {
     const {scrollTop, scrollHeight, clientHeight} = scrollRef.current;
@@ -153,7 +154,7 @@ export function ScrollArrow({
         onScroll(
           dir === 'up'
             ? Math.min(pixelsToScroll, remainingPixels)
-            : Math.max(-pixelsToScroll, -remainingPixels)
+            : Math.max(-pixelsToScroll, -remainingPixels),
         );
 
         if (scrollRemaining) {
@@ -175,16 +176,23 @@ export function ScrollArrow({
 
   return (
     <div
-      className="MacSelect-ScrollArrow"
+      className={c(
+        'absolute text-center flex justify-center items-center py-1 cursor-default bg-white',
+        {
+          'top-0': dir === 'up',
+          'bottom-0': dir === 'down',
+        },
+      )}
       data-dir={dir}
       ref={ref}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       style={{
         visibility: show ? 'visible' : 'hidden',
+        width: 'calc(100% - 4px)',
       }}
     >
-      {dir === 'up' ? '▲' : '▼'}
+      {dir === 'up' ? <ChevronUpIcon /> : <ChevronDownIcon />}
     </div>
   );
 }
@@ -207,27 +215,33 @@ export function Main() {
   const [scrollTop, setScrollTop] = useState(0);
   const [blockSelection, setBlockSelection] = useState(false);
 
-  const {x, y, reference, floating, strategy, context} = useFloating({
+  const {floatingStyles, refs, context} = useFloating({
     placement: 'bottom-start',
     open,
-    onOpenChange: (open) => {
-      setOpen(open);
-    },
+    onOpenChange: setOpen,
     whileElementsMounted: autoUpdate,
     middleware: fallback
       ? [
           offset(5),
           touch ? shift({crossAxis: true, padding: 10}) : flip({padding: 10}),
           size({
-            apply({availableHeight}) {
+            apply({availableHeight, rects}) {
               Object.assign(scrollRef.current?.style ?? {}, {
                 maxHeight: `${availableHeight}px`,
+                minWidth: `${rects.reference.width}px`,
               });
             },
             padding: 10,
           }),
         ]
       : [
+          size({
+            apply({elements, rects}) {
+              Object.assign(elements.floating.style, {
+                minWidth: `${rects.reference.width + 8}px`,
+              });
+            },
+          }),
           inner({
             listRef,
             overflowRef,
@@ -239,14 +253,14 @@ export function Main() {
             minItemsVisible: touch ? 10 : 4,
             referenceOverflowThreshold: 20,
           }),
-          offset({crossAxis: -4}),
+          offset({crossAxis: -5}),
         ],
   });
 
   const {getReferenceProps, getFloatingProps, getItemProps} = useInteractions([
     useClick(context, {event: 'mousedown'}),
     useDismiss(context),
-    useRole(context, {role: 'listbox'}),
+    useRole(context, {role: 'select'}),
     useInnerOffset(context, {
       enabled: !fallback,
       onChange: setInnerOffset,
@@ -275,13 +289,13 @@ export function Main() {
       return () => {
         clearTimeout(selectTimeoutRef.current);
       };
-    } else {
-      allowSelectRef.current = false;
-      allowMouseUpRef.current = true;
-      setInnerOffset(0);
-      setFallback(false);
-      setBlockSelection(false);
     }
+
+    allowSelectRef.current = false;
+    allowMouseUpRef.current = true;
+    setInnerOffset(0);
+    setFallback(false);
+    setBlockSelection(false);
   }, [open]);
 
   const handleArrowScroll = (amount: number) => {
@@ -309,12 +323,11 @@ export function Main() {
 
   return (
     <>
-      <h1>MacSelect</h1>
-      <p></p>
-      <div className="container">
-        <button
-          ref={reference}
-          className="MacSelect-button"
+      <h1 className="text-5xl font-bold mb-8">macOS Select</h1>
+      <div className="grid place-items-center border border-slate-400 rounded lg:w-[40rem] h-[20rem] mb-4">
+        <Button
+          ref={refs.setReference}
+          className="flex gap-2 items-center"
           {...getReferenceProps({
             onTouchStart() {
               setTouch(true);
@@ -326,28 +339,21 @@ export function Main() {
             },
           })}
         >
-          <span aria-hidden="true">{emoji}</span>
+          <span aria-hidden>{emoji}</span>
           <span>{text}</span>
-        </button>
+          <ChevronDownIcon />
+        </Button>
         <FloatingPortal>
           {open && (
             <FloatingOverlay lockScroll={!touch} style={{zIndex: 1}}>
-              <FloatingFocusManager
-                context={context}
-                initialFocus={-1}
-                modal={false}
-              >
+              <FloatingFocusManager context={context} modal={false}>
                 <div
-                  ref={floating}
-                  style={{
-                    position: strategy,
-                    top: y ?? 0,
-                    left: x ?? 0,
-                  }}
+                  ref={refs.setFloating}
+                  style={floatingStyles}
+                  className="bg-white shadow-lg border border-slate-900/15 bg-clip-padding rounded-lg outline-none"
                 >
                   <div
-                    className="MacSelect"
-                    style={{overflowY: 'auto'}}
+                    className="overflow-y-auto p-1 scrollbar-none"
                     ref={scrollRef}
                     {...getFloatingProps({
                       onScroll({currentTarget}) {
@@ -361,28 +367,29 @@ export function Main() {
                     {fruits.map((fruit, i) => {
                       const {emoji, text} = getParts(fruit);
                       return (
-                        <button
+                        <Button
                           key={fruit}
+                          className="flex justify-between items-center gap-2 w-full outline-none text-left scroll-my-6 transition-none"
                           // Prevent immediate selection on touch devices when
                           // pressing the ScrollArrows
                           disabled={blockSelection}
-                          aria-selected={selectedIndex === i}
-                          role="option"
-                          tabIndex={-1}
                           style={{
                             background:
                               activeIndex === i
                                 ? 'rgba(0,200,255,0.2)'
                                 : i === selectedIndex
-                                ? 'rgba(0,0,50,0.05)'
-                                : 'transparent',
+                                  ? 'rgba(0,0,50,0.05)'
+                                  : 'transparent',
                             fontWeight: i === selectedIndex ? 'bold' : 'normal',
                           }}
+                          tabIndex={i === activeIndex ? 0 : -1}
                           ref={(node) => {
                             listRef.current[i] = node;
                             listContentRef.current[i] = text;
                           }}
                           {...getItemProps({
+                            active: activeIndex === i,
+                            selected: selectedIndex === i,
                             onTouchStart() {
                               allowSelectRef.current = true;
                               allowMouseUpRef.current = false;
@@ -415,24 +422,28 @@ export function Main() {
                             },
                           })}
                         >
-                          <span aria-hidden="true">{emoji}</span>
-                          <span>{text}</span>
-                        </button>
+                          <div className="flex gap-2">
+                            <span aria-hidden>{emoji}</span>
+                            <span>{text}</span>
+                          </div>
+                          {selectedIndex === i && <CheckIcon />}
+                        </Button>
                       );
                     })}
                   </div>
-                  {(['up', 'down'] as Array<'up' | 'down'>).map((dir) => (
-                    <ScrollArrow
-                      key={dir}
-                      dir={dir}
-                      scrollTop={scrollTop}
-                      scrollRef={scrollRef}
-                      innerOffset={innerOffset}
-                      open={open}
-                      onScroll={handleArrowScroll}
-                      onHide={handleArrowHide}
-                    />
-                  ))}
+                  {!fallback &&
+                    (['up', 'down'] as Array<'up' | 'down'>).map((dir) => (
+                      <ScrollArrow
+                        key={dir}
+                        dir={dir}
+                        scrollTop={scrollTop}
+                        scrollRef={scrollRef}
+                        innerOffset={innerOffset}
+                        open={open}
+                        onScroll={handleArrowScroll}
+                        onHide={handleArrowHide}
+                      />
+                    ))}
                 </div>
               </FloatingFocusManager>
             </FloatingOverlay>

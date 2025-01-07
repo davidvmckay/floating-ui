@@ -1,6 +1,8 @@
 import {
+  arrow,
   autoUpdate,
   flip,
+  FloatingArrow,
   FloatingPortal,
   inline,
   offset,
@@ -16,24 +18,30 @@ import {
   useRole,
   useTransitionStyles,
 } from '@floating-ui/react';
+import classNames from 'classnames';
 import * as React from 'react';
 import {useId} from 'react';
 
 export function useTooltip({
   initialOpen = false,
   placement = 'top',
+  strategy,
   open: controlledOpen,
   onOpenChange: setControlledOpen,
+  noRest,
 } = {}) {
   const {delay, isInstantPhase} = useDelayGroupContext();
   const [uncontrolledOpen, setUncontrolledOpen] =
     React.useState(initialOpen);
+
+  const arrowRef = React.useRef(null);
 
   const open = controlledOpen ?? uncontrolledOpen;
   const setOpen = setControlledOpen ?? setUncontrolledOpen;
 
   const data = useFloating({
     placement,
+    strategy,
     open,
     onOpenChange: setOpen,
     whileElementsMounted: autoUpdate,
@@ -43,8 +51,13 @@ export function useTooltip({
       flip({
         fallbackAxisSideDirection: 'start',
         crossAxis: placement.includes('-'),
+        padding: 5,
       }),
       shift({padding: 5}),
+      arrow({
+        element: arrowRef,
+        padding: 4,
+      }),
     ],
   });
 
@@ -53,14 +66,14 @@ export function useTooltip({
   const hover = useHover(context, {
     move: false,
     enabled: controlledOpen == null,
-    restMs: isInstantPhase ? 0 : 50,
+    restMs: isInstantPhase || noRest ? 0 : 150,
     delay,
   });
   const focus = useFocus(context, {
     enabled: controlledOpen == null,
   });
   const dismiss = useDismiss(context);
-  const role = useRole(context, {role: 'tooltip'});
+  const role = useRole(context, {role: 'label'});
 
   const interactions = useInteractions([
     hover,
@@ -75,8 +88,9 @@ export function useTooltip({
       setOpen,
       ...interactions,
       ...data,
+      arrowRef,
     }),
-    [open, setOpen, interactions, data]
+    [open, setOpen, interactions, data],
   );
 }
 
@@ -87,7 +101,7 @@ export const useTooltipContext = () => {
 
   if (context == null) {
     throw new Error(
-      'Tooltip components must be wrapped in <Tooltip />'
+      'Tooltip components must be wrapped in <Tooltip />',
     );
   }
 
@@ -108,7 +122,7 @@ export function Tooltip({children, ...options}) {
 export const TooltipTrigger = React.forwardRef(
   function TooltipTrigger(
     {children, asChild = false, ...props},
-    propRef
+    propRef,
   ) {
     const context = useTooltipContext();
     const childrenRef = children.ref;
@@ -127,7 +141,7 @@ export const TooltipTrigger = React.forwardRef(
           ...props,
           ...children.props,
           'data-state': context.open ? 'open' : 'closed',
-        })
+        }),
       );
     }
 
@@ -141,7 +155,7 @@ export const TooltipTrigger = React.forwardRef(
         {children}
       </button>
     );
-  }
+  },
 );
 
 export const TooltipContent = React.forwardRef(
@@ -165,37 +179,61 @@ export const TooltipContent = React.forwardRef(
       floatingContext,
       {
         duration: isInstantPhase
-          ? {open: 100, close: id === currentId ? 500 : 100}
-          : {open: 500, close: 150},
+          ? {open: 100, close: id === currentId ? 150 : 50}
+          : {open: 300, close: 150},
         initial: {
           opacity: 0,
           transform: 'scale(0.95)',
         },
-      }
+        common: ({side}) => ({
+          transformOrigin: {
+            top: `${
+              floatingContext.middlewareData.arrow?.x ?? 0
+            }px bottom`,
+            bottom: `${
+              floatingContext.middlewareData.arrow?.x ?? 0
+            }px top`,
+            left: `right ${
+              floatingContext.middlewareData.arrow?.y ?? 0
+            }px bottom`,
+            right: `left ${
+              floatingContext.middlewareData.arrow?.y ?? 0
+            }px`,
+          }[side],
+        }),
+      },
     );
 
     return (
-      <FloatingPortal id="tooltip-portal">
-        {isMounted && (
+      isMounted && (
+        <FloatingPortal id="tooltip-portal">
           <div
+            {...context.getFloatingProps(props)}
             ref={ref}
-            className="
-              bg-gray-50 shadow-lg dark:bg-gray-600 text-gray-1000 
-              dark:text-gray-50 rounded p-2 text-sm pointer-events-none
-            "
+            className={classNames(
+              'z-50 bg-gray-600 text-white shadow-lg',
+              'pointer-events-none cursor-default rounded p-2 text-sm',
+              props.className,
+            )}
             style={{
               position: context.strategy,
-              top: context.y ?? 0,
-              left: context.x ?? 0,
+              top: Math.round(context.y ?? 0),
+              left: Math.round(context.x ?? 0),
               width: 'max-content',
               maxWidth: 'min(calc(100vw - 10px), 25rem)',
               ...props.style,
               ...styles,
             }}
-            {...context.getFloatingProps(props)}
-          />
-        )}
-      </FloatingPortal>
+          >
+            {props.children}
+            <FloatingArrow
+              ref={context.arrowRef}
+              context={floatingContext}
+              className="fill-gray-600"
+            />
+          </div>
+        </FloatingPortal>
+      )
     );
-  }
+  },
 );

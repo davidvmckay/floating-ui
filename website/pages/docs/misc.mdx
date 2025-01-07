@@ -1,26 +1,62 @@
+<PageCard>
+
 # Misc
+
+Information, tips, and guidelines to help you use Floating UI.
+
+</PageCard>
 
 ## Browser support
 
 The following browsers are supported (defined by `browserslist`):
 
-```txt
-Chrome >= 73
-Firefox >= 78
-Edge >= 79
-Safari >= 12.0
-iOS >= 12.0
-Opera >= 53
+- Chrome >= 73
+- Firefox >= 78
+- Edge >= 79
+- Safari >= 12.0
+- iOS >= 12.0
+- Opera >= 53
+
+## Keeping Floating UI up to date
+
+Floating UI uses internal first-party dependencies (under the
+`@floating-ui` org) that may be out of date, but contain bug
+fixes you may need. You may also be using Floating UI itself as a
+transitive package of a different library.
+
+Only certain packages are kept to the latest versions to avoid
+bumping dependant packages too frequently and to ensure wider
+version support.
+
+To upgrade Floating UI as a transitive package, install the
+necessary packages directly, which will update your lockfile,
+then uninstall them again so they aren't in your
+`package.json#dependencies`.
+
+For all packages, `@floating-ui/core` should be updated manually:
+
+```bash
+npm install @floating-ui/core@latest
+npm uninstall @floating-ui/core
 ```
 
-If you need IE11 or other older browser support, use
-[Popper 2](https://popper.js.org) instead.
+For `@floating-ui/react`, `@floating-ui/react-dom`, or
+`@floating-ui/vue`, `@floating-ui/dom` should also be updated
+manually:
+
+```bash
+npm install @floating-ui/dom@latest
+npm uninstall @floating-ui/dom
+```
+
+If you're using a different library which wraps Floating UI, you
+can also do the same for the relevant package it is depending on.
 
 ## Subpixel and accelerated positioning
 
-Instead of `top{:.objectKey}` and `left{:.objectKey}` as shown
-throughout the docs, you can use transform styles instead to
-position the floating element for increased performance.
+Instead of `top{:.key}` and `left{:.key}` as shown throughout the
+docs, you can use transform styles instead to position the
+floating element for increased performance.
 
 ```js
 function roundByDPR(value) {
@@ -54,7 +90,7 @@ Object.assign(floatingEl.style, {
 ```
 
 If you're animating the location of the floating element, using
-`transform{:.objectKey}` will offer smoother animations.
+`transform{:.key}` will offer smoother animations.
 
 <Notice type="warning">
   3D transforms can sometimes result in blurry text on some
@@ -112,8 +148,8 @@ This will always make it 10 pixels less than the width of the
 viewport.
 
 The constant `10{:js}` shown in the example should be double the
-`padding{:.objectKey}` given to the `shift(){:js}` middleware if
-it's in use.
+`padding{:.key}` given to the `shift(){:js}` middleware if it's
+in use.
 
 Alternatively, you may experiment with the [`size`](/docs/size)
 middleware depending on the axis overflow is occurring.

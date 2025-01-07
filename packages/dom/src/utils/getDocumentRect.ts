@@ -1,10 +1,9 @@
 import type {Rect} from '@floating-ui/core';
+import {max} from '@floating-ui/utils';
+import {getComputedStyle, getNodeScroll} from '@floating-ui/utils/dom';
 
-import {getComputedStyle} from './getComputedStyle';
-import {getDocumentElement} from './getDocumentElement';
-import {getNodeScroll} from './getNodeScroll';
+import {getDocumentElement} from '../platform/getDocumentElement';
 import {getWindowScrollBarX} from './getWindowScrollBarX';
-import {max} from './math';
 
 // Gets the entire size of the scrollable document area, even extending outside
 // of the `<html>` and `<body>` rect bounds if horizontally scrollable.
@@ -17,13 +16,13 @@ export function getDocumentRect(element: HTMLElement): Rect {
     html.scrollWidth,
     html.clientWidth,
     body.scrollWidth,
-    body.clientWidth
+    body.clientWidth,
   );
   const height = max(
     html.scrollHeight,
     html.clientHeight,
     body.scrollHeight,
-    body.clientHeight
+    body.clientHeight,
   );
 
   let x = -scroll.scrollLeft + getWindowScrollBarX(element);

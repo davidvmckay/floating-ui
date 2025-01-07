@@ -9,7 +9,7 @@ import React from 'react';
 class MyDocument extends Document {
   render() {
     return (
-      <Html lang="en" data-theme="dark">
+      <Html lang="en">
         <Head>
           {/* <script
             async
@@ -19,14 +19,13 @@ class MyDocument extends Document {
           /> */}
           <meta
             name="description"
-            content="A JavaScript library for anchor positioning with web, React, and Vue bindings, plus interaction primitives for React to build floating UI components."
+            content="A JavaScript library to position floating elements and create interactions for them."
           />
         </Head>
         <body
           className="bg-gray-75 text-gray-900 dark:bg-gray-900 dark:text-gray-100"
           data-remove-transitions=""
         >
-          <div id="focus-root" tabIndex={-1} />
           <Main />
           <NextScript />
         </body>

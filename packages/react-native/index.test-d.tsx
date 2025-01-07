@@ -1,20 +1,20 @@
-import {useRef} from 'react';
+import * as React from 'react';
 import {View} from 'react-native';
 
-import {arrow, shift, useFloating} from '.';
+import {arrow, offset, shift, useFloating} from './src';
 
 App;
 function App() {
-  const arrowRef = useRef(null);
+  const arrowRef = React.useRef(null);
   useFloating();
-  const {reference, floating, update, refs, elements} = useFloating({
+  const {update, refs, elements} = useFloating({
     placement: 'right',
-    middleware: [shift(), arrow({element: arrowRef})],
-    // @ts-expect-error
+    middleware: [offset(() => 5), shift(), arrow({element: arrowRef})],
+    // @ts-expect-error - does not exist in React Native
     strategy: 'fixed',
   });
-  reference(null);
-  reference({
+  refs.setReference(null);
+  refs.setReference({
     getBoundingClientRect() {
       return {
         x: 0,
@@ -28,8 +28,6 @@ function App() {
       };
     },
   });
-  reference(null);
-  floating(null);
   update();
   refs.setReference(null);
   refs.setFloating(null);

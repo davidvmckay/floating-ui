@@ -1,8 +1,65 @@
+<PageCard className="mb-8">
+
 # flip
 
-A visibility optimizer that changes the placement of the floating
-element in order to keep it in view. By default, only the
-opposite placement is tried.
+Changes the placement of the floating element to keep it in view.
+
+<MiddlewareContainer>
+  <MiddlewareBadge type="Visibility Optimizer" />
+</MiddlewareContainer>
+
+<ShowFor packages={['core']}>
+
+```js
+import {flip} from '@floating-ui/core';
+```
+
+</ShowFor>
+
+<ShowFor packages={['dom']}>
+
+```js
+import {flip} from '@floating-ui/dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react']}>
+
+```js
+import {flip} from '@floating-ui/react';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-dom']}>
+
+```js
+import {flip} from '@floating-ui/react-dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+import {flip} from '@floating-ui/vue';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-native']}>
+
+```js
+import {flip} from '@floating-ui/react-native';
+```
+
+</ShowFor>
+
+This prevents the floating element from overflowing along its
+side axis by flipping it to the opposite side by default.
+
+</PageCard>
 
 <div className="flex flex-col gap-4">
   <Chrome
@@ -11,28 +68,47 @@ opposite placement is tried.
     scrollable="y"
     className="h-96"
   >
-    <Floating middleware={[{name: 'flip'}]}>
-      <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed">
-        Default
-      </div>
+    <Floating
+      middleware={[
+        {name: 'flip', options: {rootBoundary: 'document'}},
+      ]}
+    >
+      <div className="grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
     </Floating>
   </Chrome>
 </div>
 
-It has the ability to flip to any placement, not just the
-opposite one. You can use a series of "fallback" placements,
-where each placement is progressively tried until the one that
-fits can be used.
-
 ## Usage
 
-```js
-import {computePosition, flip} from '@floating-ui/dom';
+<ShowFor packages={['core', 'dom']}>
 
+```js
 computePosition(referenceEl, floatingEl, {
   middleware: [flip()],
 });
 ```
+
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+useFloating({
+  middleware: [flip()],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+useFloating(reference, floating, {
+  middleware: [flip()],
+});
+```
+
+</ShowFor>
 
 <Notice type="warning" title="Note">
   This is an alternative to `autoPlacement(){:js}`, so only one of either can be used.
@@ -44,7 +120,7 @@ computePosition(referenceEl, floatingEl, {
 These are the options you can pass to `flip(){:js}`.
 
 ```ts
-interface Options extends DetectOverflowOptions {
+interface FlipOptions extends DetectOverflowOptions {
   mainAxis?: boolean;
   crossAxis?: boolean;
   fallbackAxisSideDirection?: 'none' | 'start' | 'end';
@@ -54,7 +130,7 @@ interface Options extends DetectOverflowOptions {
 }
 ```
 
-### mainAxis
+### `mainAxis{:.key}`
 
 default: `true{:js}`
 
@@ -88,17 +164,17 @@ flip({
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed" />
+      <div className="grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
     </Floating>
   </Chrome>
 </div>
 
-### crossAxis
+### `crossAxis{:.key}`
 
 default: `true{:js}`
 
 This is the cross axis in which overflow is checked to perform a
-flip, the opposite axis of `mainAxis{:.objectKey}`. By disabling
+flip, the axis perpendicular to `mainAxis{:.key}`. By disabling
 this, it will ignore overflow.
 
 ```js
@@ -155,9 +231,7 @@ flip({
   </Chrome>
 </div>
 
-### fallbackAxisSideDirection
-
-<Notice type="version">Since `core@1.1.0`</Notice>
+### `fallbackAxisSideDirection{:.key}`
 
 default: `'none'{:js}`
 
@@ -175,9 +249,8 @@ fallback to the other direction.
   In RTL writing direction, the x-axis directions are reversed.
 </Notice>
 
-For instance, by default, if the initial `placement{:.objectKey}`
-is set to `'right'{:js}`, then the placements to try (in order)
-are:
+For instance, by default, if the initial `placement{:.key}` is
+set to `'right'{:js}`, then the placements to try (in order) are:
 
 `['right', 'left']{:js}`
 
@@ -185,9 +258,9 @@ On a narrow viewport, it's possible or even likely that _neither_
 of these will fit.
 
 By specifying a string other than `'none'{:js}`, you allow
-placements along the opposite axis of the initial placement to be
-tried. The direction determines which side of placement is tried
-first:
+placements along the perpendicular axis of the initial placement
+to be tried. The direction determines which side of placement is
+tried first:
 
 ```js
 flip({
@@ -211,7 +284,7 @@ fit), then you'd use `'start'{:js}`. For an interactive popover,
 you likely want to use `'end'{:js}` so it's placed on the bottom,
 closer to the user's fingers.
 
-In each of the following demos, the `placement{:.objectKey}` is
+In each of the following demos, the `placement{:.key}` is
 `'right'{:js}`.
 
 <div className="flex flex-col gap-4">
@@ -223,7 +296,7 @@ In each of the following demos, the `placement{:.objectKey}` is
   >
     <Floating
       placement="right"
-      content="fallbackAxisSideDirection is set to 'none' (default)"
+      content="`fallbackAxisSideDirection` has been set to 'none' (default)"
       middleware={[
         {
           name: 'flip',
@@ -247,7 +320,7 @@ In each of the following demos, the `placement{:.objectKey}` is
 >
   <Floating
     placement="right"
-    content="fallbackAxisSideDirection is set to 'start'"
+    content="`fallbackAxisSideDirection` has been set to 'start'"
     middleware={[
       {
         name: 'flip',
@@ -256,9 +329,12 @@ In each of the following demos, the `placement{:.objectKey}` is
           rootBoundary: 'document',
         },
       },
+      {
+        name: 'shift',
+      },
     ]}
   >
-    <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed mt-12" />
+    <div className="mt-12 grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
   </Floating>
   <p>Notice that it prefers `top` if it doesn't fit.</p>
 </Chrome>
@@ -271,7 +347,7 @@ In each of the following demos, the `placement{:.objectKey}` is
   >
     <Floating
       placement="right"
-      content="fallbackAxisSideDirection is set to 'end'"
+      content="`fallbackAxisSideDirection` has been set to 'end'"
       middleware={[
         {
           name: 'flip',
@@ -280,6 +356,9 @@ In each of the following demos, the `placement{:.objectKey}` is
             rootBoundary: 'document'
           },
         },
+        {
+          name: 'shift'
+        }
       ]}
     >
       <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed mt-12" />
@@ -288,27 +367,14 @@ In each of the following demos, the `placement{:.objectKey}` is
   </Chrome>
 </div>
 
-#### Combining with `shift`
+<Notice title="Recommended reading" gap="above">
 
-If `shift(){:js}` is in use in the middleware array, you may
-desire to disable `crossAxis{:.objectKey}` overflow checking,
-which will allow `shift(){:js}` to perform its work without
-falling back to the opposite axis (therefore preserving the
-original axis as best as possible):
+Check [combining with `shift`](/docs/flip#combining-with-shift)
+when using this option.
 
-```js {4}
-const middleware = [
-  flip({
-    fallbackAxisSideDirection: 'start',
-    crossAxis: false,
-  }),
-  shift(),
-];
-```
+</Notice>
 
-This will depend on the desired positioning you want to achieve.
-
-### flipAlignment
+### `flipAlignment{:.key}`
 
 default: `true{:js}`
 
@@ -324,15 +390,15 @@ flip({
 
 When using this with the `shift(){:js}` middleware, ensure
 `flip(){:js}` is placed **before** `shift(){:js}` in your
-middleware array. This ensures the `flipAlignment{:.objectKey}`
-logic can act before `shift(){:js}`'s does.
+middleware array. This ensures the `flipAlignment{:.key}` logic
+can act before `shift(){:js}`'s does.
 
-### fallbackPlacements
+### `fallbackPlacements{:.key}`
 
 default: `[oppositePlacement]{:js}`
 
 This describes an **explicit** array of placements to try if the
-initial `placement{:.objectKey}` doesn't fit on the axes in which
+initial `placement{:.key}` doesn't fit on the axes in which
 overflow is checked.
 
 ```js
@@ -341,7 +407,7 @@ flip({
 });
 ```
 
-In the above example, if `placement{:.objectKey}` is set to
+In the above example, if `placement{:.key}` is set to
 `'top'{:js}`, then the placements to try (in order) are:
 
 `['top', 'right', 'bottom']{:js}`
@@ -366,27 +432,34 @@ In the above example, if `placement{:.objectKey}` is set to
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed" />
+      <div className="grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
     </Floating>
   </Chrome>
 </div>
 
 <Notice gap="above">
-  The options `flipAlignment{:.objectKey}` and
-  `fallbackAxisSideDirection{:.objectKey}` no longer have an effect if
+  The options `flipAlignment{:.key}` and
+  `fallbackAxisSideDirection{:.key}` no longer have an effect if
   this option is explicitly specified, as they are only shortcuts to
   create a computed list of fallback placements. To ensure your
   explicit list is preferred, they will be ignored.
 </Notice>
 
-### fallbackStrategy
+<Notice title="Recommended reading" gap="above">
+
+Check [combining with `shift`](/docs/flip#combining-with-shift)
+when using this option.
+
+</Notice>
+
+### `fallbackStrategy{:.key}`
 
 default: `'bestFit'{:js}`
 
 When no placements fit, then you'll want to decide what happens.
 `'bestFit'{:js}` will use the placement which fits best on the
 checked axes. `'initialPlacement'{:js}` will use the initial
-`placement{:.objectKey}` specified.
+`placement{:.key}` specified.
 
 ```js
 flip({
@@ -405,10 +478,23 @@ flip({
 });
 ```
 
+### Deriving options from state
+
+You can derive the options from the
+[middleware lifecycle state](/docs/middleware#middlewarestate):
+
+```js
+flip((state) => ({
+  padding: state.rects.reference.width,
+}));
+```
+
 ## Final placement
 
 The placement returned from the function is always the final one,
 not necessarily the one you passed in as the "preferred" one.
+
+<ShowFor packages={['core', 'dom']}>
 
 ```js
 computePosition(referenceEl, floatingEl, {
@@ -419,10 +505,93 @@ computePosition(referenceEl, floatingEl, {
 });
 ```
 
-## Conflict with autoPlacement
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+// placement can be 'top' or 'bottom'
+const {placement} = useFloating({
+  placement: 'bottom',
+  middleware: [flip()],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+// placement can be 'top' or 'bottom'
+const {placement} = useFloating(reference, floating, {
+  placement: 'bottom',
+  middleware: [flip()],
+});
+```
+
+</ShowFor>
+
+## Combining with `shift(){:js}`
+
+If you're allowing fallback to the opposite axis of the preferred
+placement via `fallbackAxisSideDirection{:.key}` or
+`fallbackPlacements{:.key}`, then you may want to determine what
+behavior you want when combining `flip(){:js}` with
+`shift(){:js}`.
+
+If you want to ensure the placement side is preserved as best as
+possible without flipping, then you have two options to consider:
+
+1. Disabling the cross axis check in `flip(){:js}` places top
+   priority on `shift(){:js}` to do its work, with `flip(){:js}`
+   only taking action when absolutely necessary. The preferred
+   placement of the floating element will be conserved as much as
+   possible.
+
+```js {4}
+const middleware = [
+  flip({
+    fallbackAxisSideDirection: 'start',
+    crossAxis: false,
+  }),
+  shift(),
+];
+```
+
+2. Placing `shift(){:js}` _before_ `flip(){:js}` in the array
+   ensures it can do its work before `flip(){:js}` tries to
+   change the placement. This is similar to the first technique
+   above, but allows `flip(){:js}` to take action on its
+   `crossAxis{:.key}` too -- useful if `shift(){:js}` has a
+   limiter.
+
+```js {3}
+const middleware = [
+  shift({
+    limiter: limitShift(),
+  }),
+  flip({
+    fallbackAxisSideDirection: 'start',
+  }),
+];
+```
+
+<Notice>
+
+The second method is only recommended if your placement is not
+edge aligned, e.g. `'top'{:js}` instead of `'top-start'{:js}`.
+This is because alignment flipping will no longer be possible
+since `shift` takes over first.
+
+For reusable/generic components, you can use basic conditional
+checks on the supplied preferred placement to alter the ordering.
+
+</Notice>
+
+## Conflict with `autoPlacement(){:js}`
 
 `flip(){:js}` and `autoPlacement(){:js}` cannot be used together
-inside the same middleware array, make sure you choose only one
+inside the same middleware array; make sure you choose only one
 of them to use.
 
 The reason is they both try to perform work on the placement but
@@ -430,7 +599,7 @@ with opposing strategies. Therefore, they will continually try to
 change the result or work of the other one, leading to a reset
 loop.
 
-- `flip(){:js}` — Uses a fallback "no space" strategy. Ensures
-  the preferred placement is kept unless there is no space left.
-- `autoPlacement(){:js}` — Uses a primary "most space" strategy.
+- `flip(){:js}` uses a fallback "no space" strategy. Ensures the
+  preferred placement is kept unless there is no space left.
+- `autoPlacement(){:js}` uses a primary "most space" strategy.
   Always chooses the placement with the most space available.

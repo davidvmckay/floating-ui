@@ -1,11 +1,8 @@
-import type {Rect, Side} from '@floating-ui/core';
-
+import {contains, getTarget} from '@floating-ui/react/utils';
+import {isElement} from '@floating-ui/utils/dom';
+import type {Rect, Side} from './types';
 import type {HandleCloseFn} from './hooks/useHover';
-import type {ReferenceType} from './types';
-import {contains} from './utils/contains';
 import {getChildren} from './utils/getChildren';
-import {getTarget} from './utils/getTarget';
-import {isElement} from './utils/is';
 
 type Point = [number, number];
 type Polygon = Point[];
@@ -35,20 +32,54 @@ function isInside(point: Point, rect: Rect) {
   );
 }
 
-export function safePolygon<RT extends ReferenceType = ReferenceType>({
-  restMs = 0,
-  buffer = 0.5,
-  blockPointerEvents = false,
-}: Partial<{
-  restMs: number;
-  buffer: number;
-  blockPointerEvents: boolean;
-}> = {}) {
-  let timeoutId: NodeJS.Timeout;
-  let isInsideRect = false;
-  let hasLanded = false;
+export interface SafePolygonOptions {
+  buffer?: number;
+  blockPointerEvents?: boolean;
+  requireIntent?: boolean;
+}
 
-  const fn: HandleCloseFn<RT> = ({
+/**
+ * Generates a safe polygon area that the user can traverse without closing the
+ * floating element once leaving the reference element.
+ * @see https://floating-ui.com/docs/useHover#safepolygon
+ */
+export function safePolygon(options: SafePolygonOptions = {}) {
+  const {
+    buffer = 0.5,
+    blockPointerEvents = false,
+    requireIntent = true,
+  } = options;
+
+  let timeoutId: number;
+  let hasLanded = false;
+  let lastX: number | null = null;
+  let lastY: number | null = null;
+  let lastCursorTime = performance.now();
+
+  function getCursorSpeed(x: number, y: number): number | null {
+    const currentTime = performance.now();
+    const elapsedTime = currentTime - lastCursorTime;
+
+    if (lastX === null || lastY === null || elapsedTime === 0) {
+      lastX = x;
+      lastY = y;
+      lastCursorTime = currentTime;
+      return null;
+    }
+
+    const deltaX = x - lastX;
+    const deltaY = y - lastY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    const speed = distance / elapsedTime; // px / ms
+
+    lastX = x;
+    lastY = y;
+    lastCursorTime = currentTime;
+
+    return speed;
+  }
+
+  const fn: HandleCloseFn = ({
     x,
     y,
     placement,
@@ -87,9 +118,19 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
       const cursorLeaveFromRight = x > rect.right - rect.width / 2;
       const cursorLeaveFromBottom = y > rect.bottom - rect.height / 2;
       const isOverReferenceRect = isInside(clientPoint, refRect);
+      const isFloatingWider = rect.width > refRect.width;
+      const isFloatingTaller = rect.height > refRect.height;
+      const left = (isFloatingWider ? refRect : rect).left;
+      const right = (isFloatingWider ? refRect : rect).right;
+      const top = (isFloatingTaller ? refRect : rect).top;
+      const bottom = (isFloatingTaller ? refRect : rect).bottom;
 
       if (isOverFloatingEl) {
         hasLanded = true;
+
+        if (!isLeave) {
+          return;
+        }
       }
 
       if (isOverReferenceEl) {
@@ -115,7 +156,7 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
       if (
         tree &&
         getChildren(tree.nodesRef.current, nodeId).some(
-          ({context}) => context?.open
+          ({context}) => context?.open,
         )
       ) {
         return;
@@ -144,78 +185,55 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
       switch (side) {
         case 'top':
           rectPoly = [
-            [rect.left, refRect.top + 1],
-            [rect.left, rect.bottom - 1],
-            [rect.right, rect.bottom - 1],
-            [rect.right, refRect.top + 1],
+            [left, refRect.top + 1],
+            [left, rect.bottom - 1],
+            [right, rect.bottom - 1],
+            [right, refRect.top + 1],
           ];
-          isInsideRect =
-            clientX >= rect.left &&
-            clientX <= rect.right &&
-            clientY >= rect.top &&
-            clientY <= refRect.top + 1;
           break;
         case 'bottom':
           rectPoly = [
-            [rect.left, rect.top + 1],
-            [rect.left, refRect.bottom - 1],
-            [rect.right, refRect.bottom - 1],
-            [rect.right, rect.top + 1],
+            [left, rect.top + 1],
+            [left, refRect.bottom - 1],
+            [right, refRect.bottom - 1],
+            [right, rect.top + 1],
           ];
-          isInsideRect =
-            clientX >= rect.left &&
-            clientX <= rect.right &&
-            clientY >= refRect.bottom - 1 &&
-            clientY <= rect.bottom;
           break;
         case 'left':
           rectPoly = [
-            [rect.right - 1, rect.bottom],
-            [rect.right - 1, rect.top],
-            [refRect.left + 1, rect.top],
-            [refRect.left + 1, rect.bottom],
+            [rect.right - 1, bottom],
+            [rect.right - 1, top],
+            [refRect.left + 1, top],
+            [refRect.left + 1, bottom],
           ];
-          isInsideRect =
-            clientX >= rect.left &&
-            clientX <= refRect.left + 1 &&
-            clientY >= rect.top &&
-            clientY <= rect.bottom;
           break;
         case 'right':
           rectPoly = [
-            [refRect.right - 1, rect.bottom],
-            [refRect.right - 1, rect.top],
-            [rect.left + 1, rect.top],
-            [rect.left + 1, rect.bottom],
+            [refRect.right - 1, bottom],
+            [refRect.right - 1, top],
+            [rect.left + 1, top],
+            [rect.left + 1, bottom],
           ];
-          isInsideRect =
-            clientX >= refRect.right - 1 &&
-            clientX <= rect.right &&
-            clientY >= rect.top &&
-            clientY <= rect.bottom;
           break;
       }
 
       function getPolygon([x, y]: Point): Array<Point> {
-        const isFloatingWider = rect.width > refRect.width;
-        const isFloatingTaller = rect.height > refRect.height;
-
         switch (side) {
           case 'top': {
             const cursorPointOne: Point = [
               isFloatingWider
                 ? x + buffer / 2
                 : cursorLeaveFromRight
-                ? x + buffer * 4
-                : x - buffer * 4,
+                  ? x + buffer * 4
+                  : x - buffer * 4,
               y + buffer + 1,
             ];
             const cursorPointTwo: Point = [
               isFloatingWider
                 ? x - buffer / 2
                 : cursorLeaveFromRight
-                ? x + buffer * 4
-                : x - buffer * 4,
+                  ? x + buffer * 4
+                  : x - buffer * 4,
               y + buffer + 1,
             ];
             const commonPoints: [Point, Point] = [
@@ -224,8 +242,8 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
                 cursorLeaveFromRight
                   ? rect.bottom - buffer
                   : isFloatingWider
-                  ? rect.bottom - buffer
-                  : rect.top,
+                    ? rect.bottom - buffer
+                    : rect.top,
               ],
               [
                 rect.right,
@@ -244,16 +262,16 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
               isFloatingWider
                 ? x + buffer / 2
                 : cursorLeaveFromRight
-                ? x + buffer * 4
-                : x - buffer * 4,
+                  ? x + buffer * 4
+                  : x - buffer * 4,
               y - buffer,
             ];
             const cursorPointTwo: Point = [
               isFloatingWider
                 ? x - buffer / 2
                 : cursorLeaveFromRight
-                ? x + buffer * 4
-                : x - buffer * 4,
+                  ? x + buffer * 4
+                  : x - buffer * 4,
               y - buffer,
             ];
             const commonPoints: [Point, Point] = [
@@ -262,8 +280,8 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
                 cursorLeaveFromRight
                   ? rect.top + buffer
                   : isFloatingWider
-                  ? rect.top + buffer
-                  : rect.bottom,
+                    ? rect.top + buffer
+                    : rect.bottom,
               ],
               [
                 rect.right,
@@ -283,24 +301,24 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
               isFloatingTaller
                 ? y + buffer / 2
                 : cursorLeaveFromBottom
-                ? y + buffer * 4
-                : y - buffer * 4,
+                  ? y + buffer * 4
+                  : y - buffer * 4,
             ];
             const cursorPointTwo: Point = [
               x + buffer + 1,
               isFloatingTaller
                 ? y - buffer / 2
                 : cursorLeaveFromBottom
-                ? y + buffer * 4
-                : y - buffer * 4,
+                  ? y + buffer * 4
+                  : y - buffer * 4,
             ];
             const commonPoints: [Point, Point] = [
               [
                 cursorLeaveFromBottom
                   ? rect.right - buffer
                   : isFloatingTaller
-                  ? rect.right - buffer
-                  : rect.left,
+                    ? rect.right - buffer
+                    : rect.left,
                 rect.top,
               ],
               [
@@ -321,24 +339,24 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
               isFloatingTaller
                 ? y + buffer / 2
                 : cursorLeaveFromBottom
-                ? y + buffer * 4
-                : y - buffer * 4,
+                  ? y + buffer * 4
+                  : y - buffer * 4,
             ];
             const cursorPointTwo: Point = [
               x - buffer,
               isFloatingTaller
                 ? y - buffer / 2
                 : cursorLeaveFromBottom
-                ? y + buffer * 4
-                : y - buffer * 4,
+                  ? y + buffer * 4
+                  : y - buffer * 4,
             ];
             const commonPoints: [Point, Point] = [
               [
                 cursorLeaveFromBottom
                   ? rect.left + buffer
                   : isFloatingTaller
-                  ? rect.left + buffer
-                  : rect.right,
+                    ? rect.left + buffer
+                    : rect.right,
                 rect.top,
               ],
               [
@@ -356,18 +374,26 @@ export function safePolygon<RT extends ReferenceType = ReferenceType>({
         }
       }
 
-      const poly = isInsideRect ? rectPoly : getPolygon([x, y]);
-
-      if (isInsideRect) {
+      if (isPointInPolygon([clientX, clientY], rectPoly)) {
         return;
-      } else if (hasLanded && !isOverReferenceRect) {
+      }
+
+      if (hasLanded && !isOverReferenceRect) {
         return close();
       }
 
-      if (!isPointInPolygon([clientX, clientY], poly)) {
+      if (!isLeave && requireIntent) {
+        const cursorSpeed = getCursorSpeed(event.clientX, event.clientY);
+        const cursorSpeedThreshold = 0.1;
+        if (cursorSpeed !== null && cursorSpeed < cursorSpeedThreshold) {
+          return close();
+        }
+      }
+
+      if (!isPointInPolygon([clientX, clientY], getPolygon([x, y]))) {
         close();
-      } else if (restMs && !hasLanded) {
-        timeoutId = setTimeout(close, restMs);
+      } else if (!hasLanded && requireIntent) {
+        timeoutId = window.setTimeout(close, 40);
       }
     };
   };

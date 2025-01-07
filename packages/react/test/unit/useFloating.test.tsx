@@ -1,5 +1,8 @@
-import {render, screen} from '@testing-library/react';
-import {useCallback, useLayoutEffect} from 'react';
+import {isElement} from '@floating-ui/utils/dom';
+import {act, fireEvent, render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {useCallback, useLayoutEffect, useState} from 'react';
+import {vi} from 'vitest';
 
 import {
   useClick,
@@ -9,18 +12,19 @@ import {
   useHover,
   useInteractions,
 } from '../../src';
-import {isElement} from '../../src/utils/is';
 
 describe('positionReference', () => {
   test('sets separate refs', () => {
     function App() {
-      const {reference, positionReference, refs} =
-        useFloating<HTMLDivElement>();
+      const {refs} = useFloating<HTMLDivElement>();
 
       return (
         <>
-          <div ref={reference} data-testid="reference" />
-          <div ref={positionReference} data-testid="position-reference" />
+          <div ref={refs.setReference} data-testid="reference" />
+          <div
+            ref={refs.setPositionReference}
+            data-testid="position-reference"
+          />
           <div data-testid="reference-text">
             {String(refs.domReference.current?.getAttribute('data-testid'))}
           </div>
@@ -44,13 +48,18 @@ describe('positionReference', () => {
 
   test('handles unstable reference prop', () => {
     function App() {
-      const {reference, positionReference, refs} =
-        useFloating<HTMLDivElement>();
+      const {refs} = useFloating<HTMLDivElement>();
 
       return (
         <>
-          <div ref={(node) => reference(node)} data-testid="reference" />
-          <div ref={positionReference} data-testid="position-reference" />
+          <div
+            ref={(node) => refs.setReference(node)}
+            data-testid="reference"
+          />
+          <div
+            ref={refs.setPositionReference}
+            data-testid="position-reference"
+          />
           <div data-testid="reference-text">
             {String(refs.domReference.current?.getAttribute('data-testid'))}
           </div>
@@ -74,10 +83,10 @@ describe('positionReference', () => {
 
   test('handles real virtual element', () => {
     function App() {
-      const {reference, positionReference, refs} = useFloating();
+      const {refs} = useFloating();
 
       useLayoutEffect(() => {
-        positionReference({
+        refs.setPositionReference({
           getBoundingClientRect: () => ({
             x: 218,
             y: 0,
@@ -89,11 +98,14 @@ describe('positionReference', () => {
             bottom: 0,
           }),
         });
-      }, [positionReference]);
+      }, [refs]);
 
       return (
         <>
-          <div ref={(node) => reference(node)} data-testid="reference" />
+          <div
+            ref={(node) => refs.setReference(node)}
+            data-testid="reference"
+          />
           <div data-testid="reference-text">
             {String(refs.domReference.current?.getAttribute('data-testid'))}
           </div>
@@ -116,7 +128,7 @@ describe('positionReference', () => {
   });
 });
 
-describe('#2129: interactions.getFloatingProps as a dep does not cause setState loop', () => {
+test('#2129: interactions.getFloatingProps as a dep does not cause setState loop', () => {
   function App() {
     const {refs, context} = useFloating({
       open: true,
@@ -150,4 +162,105 @@ describe('#2129: interactions.getFloatingProps as a dep does not cause setState 
   render(<App />);
 
   expect(screen.queryByTestId('floating')).toBeInTheDocument();
+});
+
+test('domReference refers to externally synchronized `reference`', async () => {
+  function App() {
+    const [referenceEl, setReferenceEl] = useState<Element | null>(null);
+    const [isOpen, setIsOpen] = useState(false);
+    const {refs, context} = useFloating({
+      open: isOpen,
+      onOpenChange: setIsOpen,
+      elements: {reference: referenceEl},
+    });
+
+    const hover = useHover(context);
+
+    const {getReferenceProps, getFloatingProps} = useInteractions([hover]);
+
+    return (
+      <>
+        <button ref={setReferenceEl} {...getReferenceProps()} />
+        {isOpen && (
+          <div role="dialog" ref={refs.setFloating} {...getFloatingProps()} />
+        )}
+      </>
+    );
+  }
+
+  render(<App />);
+
+  await userEvent.hover(screen.getByRole('button'));
+  await act(async () => {});
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+
+test('onOpenChange is passed an event as second param', async () => {
+  const onOpenChange = vi.fn();
+
+  function App() {
+    const [isOpen, setIsOpen] = useState(false);
+    const {refs, context} = useFloating({
+      open: isOpen,
+      onOpenChange(open, event) {
+        onOpenChange(open, event);
+        setIsOpen(open);
+      },
+    });
+
+    const hover = useHover(context, {
+      move: false,
+    });
+
+    const {getReferenceProps, getFloatingProps} = useInteractions([hover]);
+
+    return (
+      <>
+        <button ref={refs.setReference} {...getReferenceProps()} />
+        {isOpen && <div ref={refs.setFloating} {...getFloatingProps()} />}
+      </>
+    );
+  }
+
+  render(<App />);
+
+  await userEvent.hover(screen.getByRole('button'));
+  await act(async () => {});
+
+  expect(onOpenChange.mock.calls[0][0]).toBe(true);
+  expect(onOpenChange.mock.calls[0][1]).toBeInstanceOf(MouseEvent);
+
+  await userEvent.unhover(screen.getByRole('button'));
+
+  expect(onOpenChange.mock.calls[1][0]).toBe(false);
+  expect(onOpenChange.mock.calls[1][1]).toBeInstanceOf(MouseEvent);
+});
+
+test('refs.domReference.current is synchronized with external reference', async () => {
+  let isSameNode = false;
+
+  function App() {
+    const [referenceEl, setReferenceEl] = useState<Element | null>(null);
+    const {refs} = useFloating<HTMLButtonElement>({
+      elements: {
+        reference: referenceEl,
+      },
+    });
+
+    return (
+      <button
+        ref={setReferenceEl}
+        onClick={(event) => {
+          isSameNode = event.currentTarget === refs.domReference.current;
+        }}
+      />
+    );
+  }
+
+  render(<App />);
+
+  fireEvent.click(screen.getByRole('button'));
+
+  expect(isSameNode).toBe(true);
 });

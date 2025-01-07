@@ -1,37 +1,114 @@
+<PageCard className="mb-8">
+
 # offset
 
-A placement modifier that translates the floating element along
-the specified axes.
+Translates the floating element along the specified axes.
+
+<MiddlewareContainer>
+  <MiddlewareBadge type="Placement Modifier" />
+</MiddlewareContainer>
+
+<ShowFor packages={['core']}>
+
+```js
+import {offset} from '@floating-ui/core';
+```
+
+</ShowFor>
+
+<ShowFor packages={['dom']}>
+
+```js
+import {offset} from '@floating-ui/dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react']}>
+
+```js
+import {offset} from '@floating-ui/react';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-dom']}>
+
+```js
+import {offset} from '@floating-ui/react-dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+import {offset} from '@floating-ui/vue';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-native']}>
+
+```js
+import {offset} from '@floating-ui/react-native';
+```
+
+</ShowFor>
+
+This lets you add distance (margin or spacing) between the
+reference and floating element, slightly alter the placement, or
+even create
+[custom placements](/docs/offset#creating-custom-placements).
+
+</PageCard>
 
 <Chrome center className="pt-16 pb-24">
   <div className="flex gap-4">
     <Floating middleware={[{name: 'offset', options: 0}]}>
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         0px
       </div>
     </Floating>
     <Floating middleware={[{name: 'offset', options: 10}]}>
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         10px
       </div>
     </Floating>
   </div>
 </Chrome>
 
-This enables you to not only add distance between the reference
-and floating elements, but also
-[create a wide range of custom placements](/docs/offset#creating-custom-placements)
-not provided by the library.
-
 ## Usage
 
-```js
-import {computePosition, offset} from '@floating-ui/dom';
+<ShowFor packages={['core', 'dom']}>
 
+```js
 computePosition(referenceEl, floatingEl, {
   middleware: [offset(10)],
 });
 ```
+
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+useFloating({
+  middleware: [offset(10)],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+useFloating(reference, floating, {
+  middleware: [offset(10)],
+});
+```
+
+</ShowFor>
 
 The value(s) passed are
 [logical](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Logical_Properties),
@@ -48,23 +125,18 @@ your middleware array.
 These are the options you can pass to `offset(){:js}`.
 
 ```ts
-interface AxesOffsets {
-  mainAxis?: number;
-  crossAxis?: number;
-  alignmentAxis?: number | null;
-}
-
 type Options =
   | number
-  | AxesOffsets
-  | ((
-      middlewareArguments: MiddlewareArguments
-    ) => number | AxesOffsets);
+  | {
+      mainAxis?: number;
+      crossAxis?: number;
+      alignmentAxis?: number | null;
+    };
 ```
 
 A number represents the distance (gutter or margin) between the
 floating element and the reference element. This is shorthand for
-`mainAxis{:.objectKey}`.
+`mainAxis{:.key}`.
 
 ```js
 offset(10);
@@ -73,10 +145,11 @@ offset(10);
 An object can also be passed, which enables you to individually
 configure each axis.
 
-### mainAxis
+### `mainAxis{:.key}`
 
 default: `0{:js}`
 
+The axis that runs along the side of the floating element.
 Represents the distance (gutter or margin) between the floating
 element and the reference element.
 
@@ -89,7 +162,7 @@ offset({
 Here's how it looks on the four sides:
 
 <Chrome center className="pt-16 pb-24" tall>
-  <div className="flex flex-col md:flex-row gap-4 mt-4">
+  <div className="mt-4 flex flex-col gap-4 md:flex-row">
     <Floating
       placement="top"
       middleware={[
@@ -99,7 +172,7 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         top
       </div>
     </Floating>
@@ -112,12 +185,12 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         bottom
       </div>
     </Floating>
   </div>
-  <div className="flex flex-col md:flex-row gap-4">
+  <div className="flex flex-col gap-4 md:flex-row">
     <Floating
       placement="left"
       middleware={[
@@ -127,7 +200,7 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         left
       </div>
     </Floating>
@@ -140,17 +213,18 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         right
       </div>
     </Floating>
   </div>
 </Chrome>
 
-### crossAxis
+### `crossAxis{:.key}`
 
 default: `0{:js}`
 
+The axis that runs along the alignment of the floating element.
 Represents the skidding between the floating element and the
 reference element.
 
@@ -163,7 +237,7 @@ offset({
 Here's how it looks on the four sides:
 
 <Chrome center className="pt-16 pb-24" tall>
-  <div className="flex flex-col md:flex-row gap-4 mt-4">
+  <div className="mt-4 flex flex-col gap-4 md:flex-row">
     <Floating
       placement="top"
       middleware={[
@@ -173,7 +247,7 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         top
       </div>
     </Floating>
@@ -186,12 +260,12 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         bottom
       </div>
     </Floating>
   </div>
-  <div className="flex flex-col md:flex-row gap-4">
+  <div className="flex flex-col gap-4 md:flex-row">
     <Floating
       placement="left"
       middleware={[
@@ -201,7 +275,7 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         left
       </div>
     </Floating>
@@ -214,24 +288,24 @@ Here's how it looks on the four sides:
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         right
       </div>
     </Floating>
   </div>
 </Chrome>
 
-### alignmentAxis
+### `alignmentAxis{:.key}`
 
 default: `null{:js}`
 
-Works on the same axis as `crossAxis{:.objectKey}` but applies
-only to aligned placements and works
-[logically](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Logical_Properties).
-The offset is inverted for `-end{:.string}` alignments.
+The same axis as `crossAxis{:.key}` but applies only to aligned
+placements and inverts the `end{:.string}` alignment. When set to
+a number, it overrides the `crossAxis{:.key}` value.
 
-This will override the `crossAxis{:.objectKey}` offset when set
-to a number.
+A positive number will move the floating element in the direction
+of the opposite edge to the one that is aligned, while a negative
+number the reverse.
 
 ```js
 offset({
@@ -239,10 +313,10 @@ offset({
 });
 ```
 
-Here's how it differentiates from `crossAxis{:.objectKey}`:
+Here's how it differentiates from `crossAxis{:.key}`:
 
 <Chrome center className="pt-16 pb-24" tall>
-  <div className="flex gap-4 flex-col md:flex-row mt-4">
+  <div className="mt-4 flex flex-col gap-4 md:flex-row">
     <Floating
       placement="top-start"
       middleware={[
@@ -252,7 +326,7 @@ Here's how it differentiates from `crossAxis{:.objectKey}`:
         },
       ]}
     >
-      <div className="grid text-center place-items-center w-48 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-48 place-items-center border-2 border-dashed border-gray-1000 text-center">
         top-start <br />{' '}
         <strong className="text-inherit">(crossAxis)</strong>
       </div>
@@ -266,13 +340,13 @@ Here's how it differentiates from `crossAxis{:.objectKey}`:
         },
       ]}
     >
-      <div className="grid text-center place-items-center w-48 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-48 place-items-center border-2 border-dashed border-gray-1000 text-center">
         top-end <br />{' '}
         <strong className="text-inherit">(crossAxis)</strong>
       </div>
     </Floating>
   </div>
-  <div className="flex gap-4 flex-col md:flex-row gap-4">
+  <div className="flex flex-col gap-4 md:flex-row">
     <Floating
       placement="top-start"
       middleware={[
@@ -282,7 +356,7 @@ Here's how it differentiates from `crossAxis{:.objectKey}`:
         },
       ]}
     >
-      <div className="grid text-center place-items-center w-48 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-48 place-items-center border-2 border-dashed border-gray-1000 text-center">
         top-start <br />{' '}
         <strong className="text-inherit">(alignmentAxis)</strong>
       </div>
@@ -296,7 +370,7 @@ Here's how it differentiates from `crossAxis{:.objectKey}`:
         },
       ]}
     >
-      <div className="grid text-center place-items-center w-48 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-48 place-items-center border-2 border-dashed border-gray-1000 text-center">
         top-end <br />{' '}
         <strong className="text-inherit">(alignmentAxis)</strong>
       </div>
@@ -314,6 +388,8 @@ For example, although the library doesn't provide a placement for
 centering on both axes, offset enables this via the function
 option by allowing you to read the rects:
 
+<ShowFor packages={['core', 'dom']}>
+
 ```js
 computePosition(referenceEl, floatingEl, {
   middleware: [
@@ -327,6 +403,42 @@ computePosition(referenceEl, floatingEl, {
 });
 ```
 
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+useFloating({
+  middleware: [
+    // Assumes placement is 'bottom' (the default)
+    offset(({rects}) => {
+      return (
+        -rects.reference.height / 2 - rects.floating.height / 2
+      );
+    }),
+  ],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+useFloating(reference, floating, {
+  middleware: [
+    // Assumes placement is 'bottom' (the default)
+    offset(({rects}) => {
+      return (
+        -rects.reference.height / 2 - rects.floating.height / 2
+      );
+    }),
+  ],
+});
+```
+
+</ShowFor>
+
 <Chrome center className="pt-16 pb-24">
   <div className="flex gap-4">
     <Floating
@@ -339,7 +451,7 @@ computePosition(referenceEl, floatingEl, {
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed">
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000">
         10px
       </div>
     </Floating>
@@ -352,6 +464,8 @@ center the floating element on both axes.
 
 A diagonal placement is also possible:
 
+<ShowFor packages={['core', 'dom']}>
+
 ```js
 computePosition(referenceEl, floatingEl, {
   placement: 'top-start',
@@ -362,6 +476,38 @@ computePosition(referenceEl, floatingEl, {
   ],
 });
 ```
+
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+useFloating({
+  placement: 'top-start',
+  middleware: [
+    offset(({rects}) => ({
+      alignmentAxis: -rects.floating.width,
+    })),
+  ],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+useFloating(reference, floating, {
+  placement: 'top-start',
+  middleware: [
+    offset(({rects}) => ({
+      alignmentAxis: -rects.floating.width,
+    })),
+  ],
+});
+```
+
+</ShowFor>
 
 <Chrome center className="pt-16 pb-24">
   <div className="flex gap-4">
@@ -376,12 +522,14 @@ computePosition(referenceEl, floatingEl, {
         },
       ]}
     >
-      <div className="grid place-items-center w-32 h-32 mx-auto border-2 border-gray-1000 border-dashed" />
+      <div className="mx-auto grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
     </Floating>
   </div>
 </Chrome>
 
 This time, `'top-start'{:js}` was used as the starting point.
+
+<ShowFor packages={['core', 'dom']}>
 
 So, it's straightforward to allow this:
 
@@ -403,7 +551,7 @@ const centerOffset = offset(({rects}) => {
 export function computePosition(
   referenceEl,
   floatingEl,
-  options
+  options,
 ) {
   const isCentered = options.placement === 'center';
   const placement = isCentered ? 'bottom' : options.placement;
@@ -419,6 +567,8 @@ export function computePosition(
   });
 }
 ```
+
+</ShowFor>
 
 <Notice>
   What about centering on the screen? You don't need Floating UI

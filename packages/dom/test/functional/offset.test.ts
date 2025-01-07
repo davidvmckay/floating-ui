@@ -19,12 +19,13 @@ allPlacements.forEach((placement) => {
         page,
       }) => {
         await page.goto('http://localhost:1234/offset');
+
         await click(page, `[data-testid="offset-${name}"]`);
         await click(page, `[data-testid="placement-${placement}"]`);
         await click(page, `[data-testid="rtl-${rtl}"]`);
 
         expect(await page.locator('.container').screenshot()).toMatchSnapshot(
-          `${name}-${placement}-${rtlStr}.png`
+          `${name}-${placement}-${rtlStr}.png`,
         );
       });
     });
