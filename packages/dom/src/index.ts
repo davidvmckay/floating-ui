@@ -9,13 +9,12 @@ import type {
 
 /**
  * Computes the `x` and `y` coordinates that will place the floating element
- * next to a reference element when it is given a certain CSS positioning
- * strategy.
+ * next to a given reference element.
  */
 export const computePosition = (
   reference: ReferenceElement,
   floating: FloatingElement,
-  options?: Partial<ComputePositionConfig>
+  options?: Partial<ComputePositionConfig>,
 ) => {
   // This caches the expensive `getClippingElementAncestors` function so that
   // multiple lifecycle resets re-use the same result. It only lives for a
@@ -30,8 +29,6 @@ export const computePosition = (
 };
 
 export {autoUpdate} from './autoUpdate';
-export {platform} from './platform';
-export {getOverflowAncestors} from './utils/getOverflowAncestors';
 export {
   arrow,
   autoPlacement,
@@ -43,4 +40,54 @@ export {
   offset,
   shift,
   size,
+} from './middleware';
+export {platform} from './platform';
+export type {
+  ArrowOptions,
+  AutoPlacementOptions,
+  AutoUpdateOptions,
+  Boundary,
+  ComputePositionConfig,
+  Derivable,
+  DetectOverflowOptions,
+  Elements,
+  FlipOptions,
+  FloatingElement,
+  HideOptions,
+  Middleware,
+  MiddlewareArguments,
+  MiddlewareState,
+  NodeScroll,
+  OffsetOptions,
+  Platform,
+  ReferenceElement,
+  ShiftOptions,
+  SizeOptions,
+  VirtualElement,
+} from './types';
+export type {
+  AlignedPlacement,
+  Alignment,
+  Axis,
+  ClientRectObject,
+  ComputePositionReturn,
+  Coords,
+  Dimensions,
+  ElementContext,
+  ElementRects,
+  InlineOptions,
+  Length,
+  LimitShiftOptions,
+  MiddlewareData,
+  MiddlewareReturn,
+  Padding,
+  Placement,
+  Rect,
+  RootBoundary,
+  Side,
+  SideObject,
+  Strategy,
 } from '@floating-ui/core';
+// This export exists only for backwards compatibility. It will be removed in
+// the next major version.
+export {getOverflowAncestors} from '@floating-ui/utils/dom';

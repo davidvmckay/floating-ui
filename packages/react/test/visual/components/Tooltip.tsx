@@ -1,13 +1,12 @@
+import type {Placement} from '@floating-ui/react';
 import {
   autoUpdate,
   flip,
   FloatingDelayGroup,
   FloatingPortal,
   offset,
-  Placement,
   shift,
   useDelayGroup,
-  useDelayGroupContext,
   useDismiss,
   useFloating,
   useFocus,
@@ -18,7 +17,7 @@ import {
 } from '@floating-ui/react';
 import {cloneElement, isValidElement, useId, useState} from 'react';
 
-import {Controls} from '../utils/Controls';
+import {Button} from '../lib/Button';
 
 type Delay = number | Partial<{open: number; close: number}>;
 
@@ -30,65 +29,29 @@ interface Props {
 }
 
 export const Main = () => {
-  const [delay, setDelay] = useState<Delay>(0);
-
   return (
     <>
-      <h1>Tooltip</h1>
-      <p>
-        A floating element that displays a label describing another element.
-      </p>
-      <div className="container">
-        <Tooltip label="My tooltip 3" delay={delay}>
-          <button>My button</button>
+      <h1 className="text-5xl font-bold mb-8">Tooltip</h1>
+      <div className="grid place-items-center border border-slate-400 rounded lg:w-[40rem] h-[20rem] mb-4">
+        <Tooltip label="My tooltip">
+          <Button>My button</Button>
         </Tooltip>
-
-        <div>
+      </div>
+      <div className="grid place-items-center border border-slate-400 rounded lg:w-[40rem] h-[20rem] mb-4">
+        <div className="flex gap-1">
           <FloatingDelayGroup delay={{open: 500, close: 200}} timeoutMs={200}>
-            <Tooltip label="My tooltip" delay={delay}>
-              <button>My button</button>
+            <Tooltip label="My tooltip">
+              <Button>My button</Button>
             </Tooltip>
-            <Tooltip label="My tooltip 2" delay={delay}>
-              <button>My button</button>
+            <Tooltip label="My tooltip 2">
+              <Button>My button</Button>
             </Tooltip>
-            <Tooltip label="My tooltip 3" delay={delay}>
-              <button>My button</button>
+            <Tooltip label="My tooltip 3">
+              <Button>My button</Button>
             </Tooltip>
           </FloatingDelayGroup>
         </div>
       </div>
-      <Controls>
-        <button
-          onClick={() => setDelay(0)}
-          style={{background: delay === 0 ? 'black' : ''}}
-        >
-          delay: 0
-        </button>
-        <button
-          onClick={() => setDelay(500)}
-          style={{background: delay === 500 ? 'black' : ''}}
-        >
-          delay: 500
-        </button>
-        <button
-          onClick={() => setDelay({open: 500})}
-          style={{
-            background:
-              typeof delay === 'object' && delay.open === 500 ? 'black' : '',
-          }}
-        >
-          {String('delay: {open: 500}')}
-        </button>
-        <button
-          onClick={() => setDelay({close: 500})}
-          style={{
-            background:
-              typeof delay === 'object' && delay.close === 500 ? 'black' : '',
-          }}
-        >
-          {String('delay: {close: 500}')}
-        </button>
-      </Controls>
     </>
   );
 };
@@ -99,11 +62,9 @@ export function Tooltip({
   placement = 'top',
   delay = 0,
 }: Props) {
-  const {delay: groupDelay, currentId, isInstantPhase} = useDelayGroupContext();
   const [open, setOpen] = useState(false);
-  const id = useId();
 
-  const {x, y, strategy, refs, context} = useFloating({
+  const {refs, floatingStyles, context} = useFloating({
     placement,
     open,
     onOpenChange: setOpen,
@@ -111,17 +72,22 @@ export function Tooltip({
     whileElementsMounted: autoUpdate,
   });
 
-  const {getReferenceProps, getFloatingProps} = useInteractions([
-    useHover(context, {
-      delay: groupDelay === 0 ? delay : groupDelay,
-      move: false,
-    }),
-    useFocus(context),
-    useRole(context, {role: 'tooltip'}),
-    useDismiss(context),
-  ]);
+  const {delay: groupDelay, currentId, isInstantPhase} = useDelayGroup(context);
 
-  useDelayGroup(context, {id});
+  const hover = useHover(context, {
+    delay: groupDelay === 0 ? delay : groupDelay,
+    move: false,
+  });
+  const focus = useFocus(context);
+  const role = useRole(context, {role: 'tooltip'});
+  const dismiss = useDismiss(context);
+
+  const {getReferenceProps, getFloatingProps} = useInteractions([
+    hover,
+    focus,
+    role,
+    dismiss,
+  ]);
 
   const instantDuration = 0;
   const openDuration = 750;
@@ -131,7 +97,8 @@ export function Tooltip({
     duration: isInstantPhase
       ? {
           open: instantDuration,
-          close: currentId === id ? closeDuration : instantDuration,
+          close:
+            currentId === context.floatingId ? closeDuration : instantDuration,
         }
       : {
           open: openDuration,
@@ -159,17 +126,17 @@ export function Tooltip({
       <FloatingPortal>
         {isMounted && (
           <div
+            role="presentation"
             ref={refs.setFloating}
-            className="Tooltip"
-            style={{
-              position: strategy,
-              top: y ?? 0,
-              left: x ?? 0,
-              ...styles,
-            }}
-            {...getFloatingProps()}
+            style={floatingStyles}
           >
-            {label}
+            <div
+              className="bg-black text-white p-1 px-2 rounded"
+              style={styles}
+              {...getFloatingProps()}
+            >
+              {label}
+            </div>
           </div>
         )}
       </FloatingPortal>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import useLayoutEffect from 'use-isomorphic-layout-effect';
+import useModernLayoutEffect from 'use-isomorphic-layout-effect';
 
 import type {FloatingContext, Placement, ReferenceType, Side} from '../types';
 import {useLatestRef} from './utils/useLatestRef';
@@ -9,8 +9,15 @@ import {useLatestRef} from './utils/useLatestRef';
 const camelCaseToKebabCase = (str: string): string =>
   str.replace(
     /[A-Z]+(?![a-z])|[A-Z]/g,
-    ($, ofs) => (ofs ? '-' : '') + $.toLowerCase()
+    ($, ofs) => (ofs ? '-' : '') + $.toLowerCase(),
   );
+
+function execWithArgsOrReturn<Value extends object | undefined, SidePlacement>(
+  valueOrFn: Value | ((args: SidePlacement) => Value),
+  args: SidePlacement,
+): Value {
+  return typeof valueOrFn === 'function' ? valueOrFn(args) : valueOrFn;
+}
 
 function useDelayUnmount(open: boolean, durationMs: number): boolean {
   const [isMounted, setIsMounted] = React.useState(open);
@@ -20,51 +27,54 @@ function useDelayUnmount(open: boolean, durationMs: number): boolean {
   }
 
   React.useEffect(() => {
-    if (!open) {
+    if (!open && isMounted) {
       const timeout = setTimeout(() => setIsMounted(false), durationMs);
       return () => clearTimeout(timeout);
     }
-  }, [open, durationMs]);
+  }, [open, isMounted, durationMs]);
 
   return isMounted;
 }
 
-export interface Props {
-  duration?: number | Partial<{open: number; close: number}>;
+export interface UseTransitionStatusProps {
+  /**
+   * The duration of the transition in milliseconds, or an object containing
+   * `open` and `close` keys for different durations.
+   */
+  duration?: number | {open?: number; close?: number};
 }
 
-type Status = 'unmounted' | 'initial' | 'open' | 'close';
+type TransitionStatus = 'unmounted' | 'initial' | 'open' | 'close';
 
 /**
  * Provides a status string to apply CSS transitions to a floating element,
  * correctly handling placement-aware transitions.
  * @see https://floating-ui.com/docs/useTransition#usetransitionstatus
  */
-export function useTransitionStatus<RT extends ReferenceType = ReferenceType>(
-  {open, elements: {floating}}: FloatingContext<RT>,
-  {duration = 250}: Props = {}
+export function useTransitionStatus(
+  context: FloatingContext,
+  props: UseTransitionStatusProps = {},
 ): {
   isMounted: boolean;
-  status: Status;
+  status: TransitionStatus;
 } {
+  const {
+    open,
+    elements: {floating},
+  } = context;
+  const {duration = 250} = props;
+
   const isNumberDuration = typeof duration === 'number';
   const closeDuration = (isNumberDuration ? duration : duration.close) || 0;
 
-  const [initiated, setInitiated] = React.useState(false);
-  const [status, setStatus] = React.useState<Status>('unmounted');
+  const [status, setStatus] = React.useState<TransitionStatus>('unmounted');
   const isMounted = useDelayUnmount(open, closeDuration);
 
-  // `initiated` check prevents this `setState` call from breaking
-  // <FloatingPortal />. This call is necessary to ensure subsequent opens
-  // after the initial one allows the correct side animation to play when the
-  // placement has changed.
-  useLayoutEffect(() => {
-    if (initiated && !isMounted) {
-      setStatus('unmounted');
-    }
-  }, [initiated, isMounted]);
+  if (!isMounted && status === 'close') {
+    setStatus('unmounted');
+  }
 
-  useLayoutEffect(() => {
+  useModernLayoutEffect(() => {
     if (!floating) return;
 
     if (open) {
@@ -77,10 +87,9 @@ export function useTransitionStatus<RT extends ReferenceType = ReferenceType>(
       return () => {
         cancelAnimationFrame(frame);
       };
-    } else {
-      setInitiated(true);
-      setStatus('close');
     }
+
+    setStatus('close');
   }, [open, floating]);
 
   return {
@@ -93,10 +102,24 @@ type CSSStylesProperty =
   | React.CSSProperties
   | ((params: {side: Side; placement: Placement}) => React.CSSProperties);
 
-export interface UseTransitionStylesProps extends Props {
+export interface UseTransitionStylesProps extends UseTransitionStatusProps {
+  /**
+   * The styles to apply when the floating element is initially mounted.
+   */
   initial?: CSSStylesProperty;
+  /**
+   * The styles to apply when the floating element is transitioning to the
+   * `open` state.
+   */
   open?: CSSStylesProperty;
+  /**
+   * The styles to apply when the floating element is transitioning to the
+   * `close` state.
+   */
   close?: CSSStylesProperty;
+  /**
+   * The styles to apply to all states.
+   */
   common?: CSSStylesProperty;
 }
 
@@ -107,45 +130,43 @@ export interface UseTransitionStylesProps extends Props {
  */
 export function useTransitionStyles<RT extends ReferenceType = ReferenceType>(
   context: FloatingContext<RT>,
-  {
+  props: UseTransitionStylesProps = {},
+): {
+  isMounted: boolean;
+  styles: React.CSSProperties;
+} {
+  const {
     initial: unstable_initial = {opacity: 0},
     open: unstable_open,
     close: unstable_close,
     common: unstable_common,
     duration = 250,
-  }: UseTransitionStylesProps = {}
-): {
-  isMounted: boolean;
-  styles: React.CSSProperties;
-} {
+  } = props;
+
   const placement = context.placement;
   const side = placement.split('-')[0] as Side;
-  const [styles, setStyles] = React.useState<React.CSSProperties>({});
-  const {isMounted, status} = useTransitionStatus(context, {duration});
+  const fnArgs = React.useMemo(() => ({side, placement}), [side, placement]);
+  const isNumberDuration = typeof duration === 'number';
+  const openDuration = (isNumberDuration ? duration : duration.open) || 0;
+  const closeDuration = (isNumberDuration ? duration : duration.close) || 0;
 
+  const [styles, setStyles] = React.useState<React.CSSProperties>(() => ({
+    ...execWithArgsOrReturn(unstable_common, fnArgs),
+    ...execWithArgsOrReturn(unstable_initial, fnArgs),
+  }));
+
+  const {isMounted, status} = useTransitionStatus(context, {duration});
   const initialRef = useLatestRef(unstable_initial);
   const openRef = useLatestRef(unstable_open);
   const closeRef = useLatestRef(unstable_close);
   const commonRef = useLatestRef(unstable_common);
 
-  const isNumberDuration = typeof duration === 'number';
-  const openDuration = (isNumberDuration ? duration : duration.open) || 0;
-  const closeDuration = (isNumberDuration ? duration : duration.close) || 0;
-
-  useLayoutEffect(() => {
-    const fnArgs = {side, placement};
-
-    const initial = initialRef.current;
-    const close = closeRef.current;
-    const open = openRef.current;
-    const common = commonRef.current;
-
-    const initialStyles =
-      typeof initial === 'function' ? initial(fnArgs) : initial;
-    const closeStyles = typeof close === 'function' ? close(fnArgs) : close;
-    const commonStyles = typeof common === 'function' ? common(fnArgs) : common;
+  useModernLayoutEffect(() => {
+    const initialStyles = execWithArgsOrReturn(initialRef.current, fnArgs);
+    const closeStyles = execWithArgsOrReturn(closeRef.current, fnArgs);
+    const commonStyles = execWithArgsOrReturn(commonRef.current, fnArgs);
     const openStyles =
-      (typeof open === 'function' ? open(fnArgs) : open) ||
+      execWithArgsOrReturn(openRef.current, fnArgs) ||
       Object.keys(initialStyles).reduce((acc: Record<string, ''>, key) => {
         acc[key] = '';
         return acc;
@@ -182,8 +203,6 @@ export function useTransitionStyles<RT extends ReferenceType = ReferenceType>(
       });
     }
   }, [
-    side,
-    placement,
     closeDuration,
     closeRef,
     initialRef,
@@ -191,6 +210,7 @@ export function useTransitionStyles<RT extends ReferenceType = ReferenceType>(
     commonRef,
     openDuration,
     status,
+    fnArgs,
   ]);
 
   return {

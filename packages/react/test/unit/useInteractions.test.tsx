@@ -1,5 +1,6 @@
 import {render} from '@testing-library/react';
 import {useEffect, useRef, useState} from 'react';
+import {vi} from 'vitest';
 
 import {
   useClick,
@@ -15,10 +16,10 @@ import {
 } from '../../src';
 
 test('correctly merges functions', () => {
-  const firstInteractionOnClick = jest.fn();
-  const secondInteractionOnClick = jest.fn();
-  const secondInteractionOnKeyDown = jest.fn();
-  const userOnClick = jest.fn();
+  const firstInteractionOnClick = vi.fn();
+  const secondInteractionOnClick = vi.fn();
+  const secondInteractionOnKeyDown = vi.fn();
+  const userOnClick = vi.fn();
 
   function App() {
     const {getReferenceProps} = useInteractions([
@@ -52,12 +53,11 @@ test('correctly merges functions', () => {
 test('does not error with undefined user supplied functions', () => {
   function App() {
     const {getReferenceProps} = useInteractions([{reference: {onClick() {}}}]);
-    return null;
-
     expect(() =>
       // @ts-expect-error
-      getReferenceProps({onClick: undefined}).onClick()
+      getReferenceProps({onClick: undefined}).onClick(),
     ).not.toThrowError();
+    return null;
   }
 
   render(<App />);
@@ -75,6 +75,24 @@ test('does not break props that start with `on`', () => {
 
     expect(props.onlyShowVotes).toBe(true);
     expect(typeof props.onyx).toBe('function');
+
+    return null;
+  }
+
+  render(<App />);
+});
+
+test('does not break props that return values', () => {
+  function App() {
+    const {getReferenceProps} = useInteractions([]);
+
+    const props = getReferenceProps({
+      // @ts-expect-error
+      onyx: () => 'returned value',
+    });
+
+    // @ts-expect-error
+    expect(props.onyx()).toBe('returned value');
 
     return null;
   }
@@ -122,7 +140,7 @@ test('prop getters are memoized', () => {
           onChange: () => {},
           overflowRef,
         }),
-      ]
+      ],
     );
 
     useEffect(() => {

@@ -1,11 +1,18 @@
 import type {Placement} from '@floating-ui/core';
-import {arrow, flip, offset, shift, useFloating} from '@floating-ui/react-dom';
-import {useLayoutEffect, useRef, useState} from 'react';
+import {
+  arrow,
+  autoUpdate,
+  flip,
+  offset,
+  shift,
+  useFloating,
+} from '@floating-ui/react-dom';
+import {useRef, useState} from 'react';
 
-import {allPlacements} from '../utils/allPlacements';
 import {BoxSizeControl} from '../utils/BoxSizeControl';
 import {Container} from '../utils/Container';
 import {Controls} from '../utils/Controls';
+import {allPlacements} from '../utils/allPlacements';
 import {useBoxSize} from '../utils/useBoxSize';
 import {useSize} from '../utils/useSize';
 
@@ -23,14 +30,14 @@ export function Complex() {
   const {
     x,
     y,
-    reference,
-    floating,
+    refs,
     strategy,
     update,
     placement: resultantPlacement,
     middlewareData: {arrow: {x: arrowX, y: arrowY} = {}},
   } = useFloating({
     placement,
+    whileElementsMounted: autoUpdate,
     middleware: [
       offset(offsetValue),
       flip(),
@@ -38,8 +45,6 @@ export function Complex() {
       arrow({element: arrowRef, padding: paddingValue}),
     ],
   });
-
-  useLayoutEffect(update, [update, floatingSize, referenceSize, paddingValue]);
 
   const oppositeSidesMap: {[key: string]: string} = {
     top: 'bottom',
@@ -59,14 +64,14 @@ export function Complex() {
       </p>
       <Container update={update}>
         <div
-          ref={reference}
+          ref={refs.setReference}
           className="reference"
           style={{width: referenceSizeValue, height: referenceSizeValue}}
         >
           Reference
         </div>
         <div
-          ref={floating}
+          ref={refs.setFloating}
           className="floating"
           style={{
             position: strategy,

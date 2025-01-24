@@ -1,7 +1,10 @@
-# Migrating from Popper 2 to Floating UI
+<PageCard>
 
-This page is dedicated to helping you migrate from Popper v2 to
-Floating UI.
+# Migration
+
+Learn how to migrate from Popper v2 to Floating UI.
+
+</PageCard>
 
 **Rebranding**: The library was rebranded as it offers more
 packages and functionality, like the new [React](/docs/react)
@@ -26,13 +29,18 @@ Similarities include:
 
 - The order of arguments and types of the positioning function
   are practically identical.
-- `placement{:.objectKey}` and `strategy{:.objectKey}` are the
-  same, passed as a third argument options object.
-- `middleware{:.objectKey}` in Floating UI is conceptually
-  similar to `modifiers{:.objectKey}` from Popper 2.
+- `placement{:.key}` and `strategy{:.key}` are the same, passed
+  as a third argument options object.
+- `middleware{:.key}` in Floating UI is conceptually similar to
+  `modifiers{:.key}` from Popper 2.
 - Options passed to middleware have very similar configuration as
   Popper 2, and APIs like `detectOverflow` and virtual elements
   are almost identical.
+
+<Notice gap="above">
+  More info about the motivation for Floating UI is [available
+  here](/docs/motivation).
+</Notice>
 
 ## Change dependencies
 
@@ -124,8 +132,8 @@ Read more about [`autoUpdate` here](/docs/autoUpdate).
 
 ## Configure middleware
 
-Floating UI honors the `placement{:.objectKey}` you passed in and
-does not modify it by default:
+Floating UI honors the `placement{:.key}` you passed in and does
+not modify it by default:
 
 ```js
 import {computePosition} from '@floating-ui/dom';
@@ -217,7 +225,7 @@ this on the [`arrow` middleware](/docs/arrow) page.
 ## Auto placement is now a middleware
 
 In Popper 2, this was part of `flip` but now it's separate and is
-no longer a string option for `placement{:.objectKey}`.
+no longer a string option for `placement{:.key}`.
 
 Popper 2:
 

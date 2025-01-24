@@ -1,17 +1,38 @@
+<PageCard>
+
 # useTypeahead
 
 Provides a matching callback that can be used to focus an item as
-the user types, often used in tandem with
-`useListNavigation(){:js}`.
+the user types, used in tandem with `useListNavigation(){:js}`.
 
 ```js
 import {useTypeahead} from '@floating-ui/react';
 ```
 
+This is useful for creating a menu with typeahead support, where
+the user can type to focus an item and then immediately select
+it, especially if it contains a large number of items.
+
+See [`FloatingList`](/docs/FloatingList) for creating composable
+children API components.
+
+<ShowFor packages={['react-dom']}>
+
+<PackageLimited>@floating-ui/react only</PackageLimited>
+
+</ShowFor>
+
+</PageCard>
+
+<Notice>
+  This Hook should not be used for typeable `<input />{:html}` elements. 
+  It is intended to be used on menu buttons for a dropdown menu or select menu, 
+  rather than a combobox that is searchable.
+</Notice>
+
 ## Usage
 
-This hook is an interaction hook that returns event handler
-props.
+This Hook returns event handler props.
 
 To use it, pass it the `context{:.const}` object returned from
 `useFloating(){:js}`, and then feed its result into the
@@ -25,7 +46,7 @@ index for focus.
 function App() {
   const [activeIndex, setActiveIndex] = useState(null);
 
-  const {x, y, strategy, refs, context} = useFloating({
+  const {refs, floatingStyles, context} = useFloating({
     open: true,
   });
 
@@ -49,11 +70,7 @@ function App() {
       </div>
       <div
         ref={refs.setFloating}
-        style={{
-          position: strategy,
-          top: y ?? 0,
-          left: x ?? 0,
-        }}
+        style={floatingStyles}
         {...getFloatingProps()}
       >
         {items.map((item, index) => (
@@ -75,26 +92,27 @@ function App() {
 ## Props
 
 ```ts
-interface Props {
+interface UseTypeaheadProps {
   listRef: React.MutableRefObject<Array<string | null>>;
   activeIndex: number | null;
-  onMatch?: (index: number) => void;
+  onMatch?(index: number): void;
   enabled?: boolean;
+  resetMs?: number;
+  ignoreKeys?: Array<string>;
+  selectedIndex?: number | null;
+  onTypingChange?(isTyping: boolean): void;
   findMatch?:
     | null
     | ((
         list: Array<string | null>,
-        typedString: string
+        typedString: string,
       ) => string | null | undefined);
-  resetMs?: number;
-  ignoreKeys?: Array<string>;
-  selectedIndex?: number | null;
 }
 ```
 
-### listRef
+### `listRef{:.key}`
 
-**Required**
+<Required />
 
 default: empty list
 
@@ -128,9 +146,12 @@ const listContentRef = useRef([]);
 />
 ```
 
-### activeIndex
+Disabled items can be represented by `null{:js}` values in the
+array at the relevant index, and will be skipped.
 
-**Required**
+### `activeIndex{:.key}`
+
+<Required />
 
 default: `null{:js}`
 
@@ -145,7 +166,7 @@ useTypeahead(context, {
 });
 ```
 
-### onMatch
+### `onMatch{:.function}`
 
 default: no-op
 
@@ -162,11 +183,11 @@ useTypeahead(context, {
 });
 ```
 
-### enabled
+### `enabled{:.key}`
 
 default: `true{:js}`
 
-Conditionally enable/disable the hook.
+Conditionally enable/disable the Hook.
 
 ```js
 useTypeahead(context, {
@@ -174,7 +195,7 @@ useTypeahead(context, {
 });
 ```
 
-### findMatch
+### `findMatch{:.function}`
 
 default: lowercase finder
 
@@ -186,14 +207,14 @@ useTypeahead(context, {
   findMatch: (list, typedString) =>
     list.find(
       (itemString) =>
-        itemString?.toLowerCase().indexOf(typedString) === 0
+        itemString?.toLowerCase().indexOf(typedString) === 0,
     ),
 });
 ```
 
-### resetMs
+### `resetMs{:.key}`
 
-default: `1000{:js}`
+default: `750{:js}`
 
 Debounce timeout which will reset the transient string as the
 user types.
@@ -204,7 +225,7 @@ useTypeahead(context, {
 });
 ```
 
-### ignoreKeys
+### `ignoreKeys{:.key}`
 
 default: `[]{:js}`
 
@@ -216,7 +237,7 @@ useTypeahead(context, {
 });
 ```
 
-### selectedIndex
+### `selectedIndex{:.key}`
 
 default: `null{:js}`
 
@@ -230,11 +251,16 @@ useTypeahead(context, {
 });
 ```
 
-## Data
+### `onTypingChange{:.function}`
 
-### typing
+default: no-op
 
-This hook sets `context.dataRef.current.typing = boolean{:js}` to
-determine if the user is currently typing. If a select option
-needs to be selected with `Space`, but the typeahead also allows
-spaces, this can be used to conditionally run the handler.
+Callback invoked with the typing state as the user types.
+
+```js
+useTypeahead(context, {
+  onTypingChange(isTyping) {
+    // ...
+  },
+});
+```

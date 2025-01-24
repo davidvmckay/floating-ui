@@ -1,7 +1,7 @@
 import type {Placement} from '@floating-ui/core';
 import type {FlipOptions} from '@floating-ui/core';
-import {flip, useFloating} from '@floating-ui/react-dom';
-import {useLayoutEffect, useState} from 'react';
+import {autoUpdate, flip, shift, useFloating} from '@floating-ui/react-dom';
+import {useState} from 'react';
 
 import {allPlacements} from '../utils/allPlacements';
 import {Controls} from '../utils/Controls';
@@ -21,26 +21,21 @@ export function Flip() {
   const [fallbackStrategy, setFallbackStrategy] =
     useState<FlipOptions['fallbackStrategy']>('bestFit');
   const [flipAlignment, setFlipAlignment] = useState(true);
-  const {x, y, reference, floating, strategy, update, refs} = useFloating({
+  const [addShift, setAddShift] = useState(false);
+  const {x, y, strategy, update, refs} = useFloating({
     placement,
+    whileElementsMounted: autoUpdate,
     middleware: [
       flip({
         mainAxis,
         crossAxis,
-        fallbackPlacements,
+        fallbackPlacements: addShift ? ['bottom'] : fallbackPlacements,
         fallbackStrategy,
         flipAlignment,
       }),
+      addShift && shift(),
     ],
   });
-
-  useLayoutEffect(update, [
-    update,
-    mainAxis,
-    crossAxis,
-    fallbackPlacements?.length,
-    fallbackStrategy,
-  ]);
 
   const {scrollRef, indicator} = useScroll({refs, update});
 
@@ -56,16 +51,19 @@ export function Flip() {
           ref={scrollRef}
         >
           {indicator}
-          <div ref={reference} className="reference">
+          <div ref={refs.setReference} className="reference">
             Reference
           </div>
           <div
-            ref={floating}
+            ref={refs.setFloating}
             className="floating"
             style={{
               position: strategy,
-              top: y ?? '',
-              left: x ?? '',
+              top: y ?? 0,
+              left: x ?? 0,
+              ...(addShift && {
+                width: 400,
+              }),
             }}
           >
             Floating
@@ -126,17 +124,17 @@ export function Flip() {
               localFallbackPlacements[0] === 'undefined'
                 ? 'undefined'
                 : localFallbackPlacements[0] == null
-                ? '[]'
-                : localFallbackPlacements.length === 12
-                ? 'all'
-                : ''
+                  ? '[]'
+                  : localFallbackPlacements.length === 12
+                    ? 'all'
+                    : ''
             }`}
             onClick={() =>
               setFallbackPlacements(
                 // @ts-ignore
                 localFallbackPlacements[0] === 'undefined'
                   ? undefined
-                  : localFallbackPlacements
+                  : localFallbackPlacements,
               )
             }
             style={{
@@ -145,9 +143,9 @@ export function Flip() {
                 fallbackPlacements === undefined
                   ? 'black'
                   : localFallbackPlacements?.length ===
-                    fallbackPlacements?.length
-                  ? 'black'
-                  : '',
+                      fallbackPlacements?.length
+                    ? 'black'
+                    : '',
             }}
           >
             {localFallbackPlacements[0] === 'undefined'
@@ -183,6 +181,22 @@ export function Flip() {
             onClick={() => setFlipAlignment(bool)}
             style={{
               backgroundColor: bool === flipAlignment ? 'black' : '',
+            }}
+          >
+            {String(bool)}
+          </button>
+        ))}
+      </Controls>
+
+      <h2>Add shift</h2>
+      <Controls>
+        {BOOLS.map((bool) => (
+          <button
+            key={String(bool)}
+            data-testid={`shift-${bool}`}
+            onClick={() => setAddShift(bool)}
+            style={{
+              backgroundColor: bool === addShift ? 'black' : '',
             }}
           >
             {String(bool)}

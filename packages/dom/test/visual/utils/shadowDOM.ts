@@ -1,16 +1,13 @@
-import {
-  autoUpdate,
-  computePosition,
-  Placement,
-  Strategy,
-} from '@floating-ui/dom';
-import {HTMLAttributes} from 'react';
+import type {Placement, Strategy} from '@floating-ui/dom';
+import {autoUpdate, computePosition, platform} from '@floating-ui/dom';
+import type {HTMLAttributes} from 'react';
 
 interface FloatingUICustomElement {
   reference: HTMLElement;
   floating: HTMLElement;
   placement: Placement;
   strategy: Strategy;
+  polyfill: string;
   cleanup: () => void;
 }
 
@@ -42,13 +39,14 @@ export function defineElements(): void {
       implements FloatingUICustomElement
     {
       static get observedAttributes() {
-        return ['placement', 'strategy', 'style'];
+        return ['placement', 'strategy', 'style', 'polyfill'];
       }
 
       reference: HTMLElement;
       floating: HTMLElement;
       placement: Placement = defaultOptions.placement;
       strategy: Strategy = defaultOptions.strategy;
+      polyfill = 'false';
       cleanup!: () => void;
 
       constructor() {
@@ -62,14 +60,16 @@ export function defineElements(): void {
       }
 
       attributeChangedCallback<
-        N extends Extract<keyof this, 'placement' | 'strategy'>,
-        V extends Placement | Strategy
+        N extends Extract<keyof this, 'placement' | 'strategy' | 'polyfill'>,
+        V extends Placement | Strategy,
       >(name: N, _oldValue: V, value: V): void {
         if (name === 'placement') {
           this.placement = value as Placement;
         } else if (name === 'strategy') {
           this.strategy = value as Strategy;
           this.floating.style.position = value;
+        } else if (name === 'polyfill') {
+          this.polyfill = value as string;
         }
 
         position(this);
@@ -82,14 +82,14 @@ export function defineElements(): void {
       disconnectedCallback(): void {
         this.cleanup?.();
       }
-    }
+    },
   );
 
   defineIfNeeded(
     deepHostChildTag,
     class DeepHostChild extends HTMLElement implements FloatingUICustomElement {
       static get observedAttributes() {
-        return ['placement', 'strategy', 'style'];
+        return ['placement', 'strategy', 'style', 'polyfill'];
       }
 
       container: HTMLElement;
@@ -97,6 +97,7 @@ export function defineElements(): void {
       floating: HTMLElement;
       placement: Placement = defaultOptions.placement;
       strategy: Strategy = defaultOptions.strategy;
+      polyfill = 'false';
       cleanup!: () => void;
 
       constructor() {
@@ -112,14 +113,16 @@ export function defineElements(): void {
       }
 
       attributeChangedCallback<
-        N extends Extract<keyof this, 'placement' | 'strategy'>,
-        V extends Placement | Strategy
+        N extends Extract<keyof this, 'placement' | 'strategy' | 'polyfill'>,
+        V extends Placement | Strategy,
       >(name: N, _oldValue: V, value: V): void {
         if (name === 'placement') {
           this.placement = value as Placement;
         } else if (name === 'strategy') {
           this.strategy = value as Strategy;
           this.floating.style.position = value;
+        } else if (name === 'polyfill') {
+          this.polyfill = value as string;
         }
 
         position(this);
@@ -132,7 +135,7 @@ export function defineElements(): void {
       disconnectedCallback(): void {
         this.cleanup?.();
       }
-    }
+    },
   );
 
   defineIfNeeded(
@@ -149,7 +152,7 @@ export function defineElements(): void {
         const style = recreateDocumentStyle();
         shadow.append(style, wrapper);
       }
-    }
+    },
   );
 
   defineIfNeeded(
@@ -159,13 +162,14 @@ export function defineElements(): void {
       implements FloatingUICustomElement
     {
       static get observedAttributes() {
-        return ['placement', 'strategy', 'style'];
+        return ['placement', 'strategy', 'style', 'polyfill'];
       }
 
       reference!: HTMLElement;
       floating: HTMLElement;
       placement: Placement = defaultOptions.placement;
       strategy: Strategy = defaultOptions.strategy;
+      polyfill = 'false';
       cleanup!: () => void;
 
       constructor() {
@@ -178,14 +182,16 @@ export function defineElements(): void {
       }
 
       attributeChangedCallback<
-        N extends Extract<keyof this, 'placement' | 'strategy'>,
-        V extends Placement | Strategy
+        N extends Extract<keyof this, 'placement' | 'strategy' | 'polyfill'>,
+        V extends Placement | Strategy,
       >(name: N, _oldValue: V, value: V): void {
         if (name === 'placement') {
           this.placement = value as Placement;
         } else if (name === 'strategy') {
           this.strategy = value as Strategy;
           this.floating.style.position = value;
+        } else if (name === 'polyfill') {
+          this.polyfill = value as string;
         }
 
         position(this);
@@ -200,13 +206,13 @@ export function defineElements(): void {
       disconnectedCallback(): void {
         this.cleanup?.();
       }
-    }
+    },
   );
 }
 
 function defineIfNeeded(
   tag: string,
-  customElementConstructor: CustomElementConstructor
+  customElementConstructor: CustomElementConstructor,
 ): void {
   if (!customElements.get(tag)) {
     customElements.define(tag, customElementConstructor);
@@ -245,6 +251,7 @@ async function position({
   placement,
   reference,
   strategy,
+  polyfill,
 }: FloatingUICustomElement): Promise<void> {
   if (!floating || !reference) {
     return;
@@ -253,6 +260,13 @@ async function position({
   return computePosition(reference, floating, {
     placement,
     strategy,
+    platform: {
+      ...platform,
+      getOffsetParent:
+        polyfill === 'true'
+          ? (element) => platform.getOffsetParent(element, composedOffsetParent)
+          : platform.getOffsetParent,
+    },
   }).then(({x, y}) => {
     Object.assign(floating.style, {
       position: strategy,
@@ -273,4 +287,54 @@ function setUpAutoUpdate(element: FloatingUICustomElement): () => void {
     // ensures initial positioning is accurate
     animationFrame: true,
   });
+}
+
+function getWindow(node: Node) {
+  return node.ownerDocument?.defaultView || window;
+}
+
+function isShadowRoot(node: Node): node is ShadowRoot {
+  return node instanceof getWindow(node).ShadowRoot;
+}
+
+/**
+ * Polyfills the old offsetParent behavior from before the spec was changed:
+ * https://github.com/w3c/csswg-drafts/issues/159
+ */
+export function composedOffsetParent(element: HTMLElement) {
+  let {offsetParent} = element;
+  let ancestor: any = element;
+  let foundInsideSlot = false;
+
+  while (ancestor && ancestor !== offsetParent) {
+    const {assignedSlot} = ancestor;
+
+    if (assignedSlot) {
+      let newOffsetParent = assignedSlot.offsetParent;
+
+      if (getComputedStyle(assignedSlot).display === 'contents') {
+        const hadStyleAttribute = assignedSlot.hasAttribute('style');
+        const oldDisplay = assignedSlot.style.display;
+        assignedSlot.style.display = getComputedStyle(ancestor).display;
+
+        newOffsetParent = assignedSlot.offsetParent;
+
+        assignedSlot.style.display = oldDisplay;
+        if (!hadStyleAttribute) {
+          assignedSlot.removeAttribute('style');
+        }
+      }
+
+      ancestor = assignedSlot;
+      if (offsetParent !== newOffsetParent) {
+        offsetParent = newOffsetParent;
+        foundInsideSlot = true;
+      }
+    } else if (isShadowRoot(ancestor) && ancestor.host && foundInsideSlot) {
+      break;
+    }
+    ancestor = (isShadowRoot(ancestor) && ancestor.host) || ancestor.parentNode;
+  }
+
+  return offsetParent;
 }

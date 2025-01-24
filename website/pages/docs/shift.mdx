@@ -1,46 +1,125 @@
+<PageCard className="mb-8">
+
 # shift
 
-A visibility optimizer that shifts the floating element along the
-specified axes in order to keep it in view.
+Shifts the floating element to keep it in view.
+
+<MiddlewareContainer>
+  <MiddlewareBadge type="Visibility Optimizer" />
+</MiddlewareContainer>
+
+<ShowFor packages={['core']}>
+
+```js
+import {shift} from '@floating-ui/core';
+```
+
+</ShowFor>
+
+<ShowFor packages={['dom']}>
+
+```js
+import {shift} from '@floating-ui/dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react']}>
+
+```js
+import {shift} from '@floating-ui/react';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-dom']}>
+
+```js
+import {shift} from '@floating-ui/react-dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+import {shift} from '@floating-ui/vue';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-native']}>
+
+```js
+import {shift} from '@floating-ui/react-native';
+```
+
+</ShowFor>
+
+This prevents the floating element from overflowing along its
+axis of alignment, thereby preserving the side it's placed on.
+
+</PageCard>
 
 <Chrome label="Scroll horizontally" center scrollable="x">
   <Floating
-    content="I am wider than my reference element"
+    content="A floating element that shifts along the x-axis"
     middleware={[{name: 'shift'}]}
+    portaled
+    bounded
   >
-    <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed m-4" />
+    <div className="m-4 grid h-10 w-10 place-items-center border-2 border-dashed border-gray-1000" />
   </Floating>
 </Chrome>
 
-In the above example, the placement is set to `'bottom'{:js}`,
-but is allowed to be shifted to prevent overflow.
-
 ## Usage
 
-```js
-import {computePosition, shift} from '@floating-ui/dom';
+<ShowFor packages={['core', 'dom']}>
 
+```js
 computePosition(referenceEl, floatingEl, {
   middleware: [shift()],
 });
 ```
+
+</ShowFor>
+
+<ShowFor packages={['react', 'react-dom', 'react-native']}>
+
+```js
+useFloating({
+  middleware: [shift()],
+});
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+useFloating(reference, floating, {
+  middleware: [shift()],
+});
+```
+
+</ShowFor>
 
 ## Options
 
 These are the options you can pass to `shift(){:js}`.
 
 ```ts
-interface Options extends DetectOverflowOptions {
+interface ShiftOptions extends DetectOverflowOptions {
   mainAxis?: boolean;
   crossAxis?: boolean;
   limiter?: {
-    fn: (middlewareArguments: MiddlewareArguments) => Coords;
+    fn: (state: MiddlewareState) => Coords;
     options?: any;
   };
 }
 ```
 
-### mainAxis
+### `mainAxis{:.key}`
 
 default: `true{:js}`
 
@@ -57,19 +136,19 @@ shift({
 
 <Chrome label="Scroll horizontally" center scrollable="x">
   <Floating
-    content="I am wider than my reference element"
+    content="A floating element that does not shift along the x-axis"
     middleware={[{name: 'shift', options: {mainAxis: false}}]}
   >
-    <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed m-4" />
+    <div className="m-4 grid h-10 w-10 place-items-center border-2 border-dashed border-gray-1000" />
   </Floating>
 </Chrome>
 
-### crossAxis
+### `crossAxis{:.key}`
 
 default: `false{:js}`
 
 This is the cross axis in which shifting is applied, the opposite
-axis of `mainAxis{:.objectKey}`.
+axis of `mainAxis{:.key}`.
 
 Enabling this can lead to the floating element **overlapping**
 the reference element, which may not be desired and is often
@@ -94,12 +173,14 @@ shift({
         },
       },
     ]}
+    portaled
+    bounded
   >
-    <div className="grid place-items-center w-32 h-32 border-2 border-gray-1000 border-dashed m-4" />
+    <div className="m-4 grid h-32 w-32 place-items-center border-2 border-dashed border-gray-1000" />
   </Floating>
 </Chrome>
 
-### limiter
+### `limiter{:.key}`
 
 default: no-op
 
@@ -108,9 +189,55 @@ order to prevent detachment or "overly-eager" behavior. The
 behavior is to stop shifting once the opposite edges of the
 elements are aligned.
 
+<ShowFor packages={['core']}>
+
+```js
+import {shift, limitShift} from '@floating-ui/core';
+```
+
+</ShowFor>
+
+<ShowFor packages={['dom']}>
+
 ```js
 import {shift, limitShift} from '@floating-ui/dom';
+```
 
+</ShowFor>
+
+<ShowFor packages={['react']}>
+
+```js
+import {shift, limitShift} from '@floating-ui/react';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-dom']}>
+
+```js
+import {shift, limitShift} from '@floating-ui/react-dom';
+```
+
+</ShowFor>
+
+<ShowFor packages={['react-native']}>
+
+```js
+import {shift, limitShift} from '@floating-ui/react-native';
+```
+
+</ShowFor>
+
+<ShowFor packages={['vue']}>
+
+```js
+import {shift, limitShift} from '@floating-ui/vue';
+```
+
+</ShowFor>
+
+```js
 shift({
   limiter: limitShift(),
 });
@@ -207,6 +334,17 @@ shift({
 If you find the padding does not get applied on the right side,
 see [Handling large content](/docs/misc#handling-large-content).
 
+### Deriving options from state
+
+You can derive the options from the
+[middleware lifecycle state](/docs/middleware#middlewarestate):
+
+```js
+shift((state) => ({
+  padding: state.rects.reference.width,
+}));
+```
+
 ## Data
 
 The following data is available in `middlewareData.shift{:js}`:
@@ -218,6 +356,6 @@ interface Data {
 }
 ```
 
-`x{:.objectKey}` and `y{:.objectKey}` represent how much the
-floating element has been shifted along that axis. The values are
-offsets, and therefore can be negative.
+`x{:.key}` and `y{:.key}` represent how much the floating element
+has been shifted along that axis. The values are offsets, and
+therefore can be negative.
